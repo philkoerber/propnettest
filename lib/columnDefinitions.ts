@@ -50,6 +50,26 @@ const ArtRenderer = (props: ICellRendererParams) => {
     return art
 }
 
+// Cell renderer for associated immobilien
+const AssociatedImmobilienRenderer = (props: ICellRendererParams) => {
+    if (!props.value || props.value.length === 0) {
+        return '-'
+    }
+
+    return props.value.map((item: any, index: number) =>
+        `${item.art} @ ${item.immobilien_titel}`
+    ).join(', ')
+}
+
+// Cell renderer for associated kontakte
+const AssociatedKontakteRenderer = (props: ICellRendererParams) => {
+    if (!props.value || props.value.length === 0) {
+        return '-'
+    }
+
+    return props.value.map((kontakt: any) => kontakt.name).join(', ')
+}
+
 // Immobilien (Properties) column definitions
 export const immobilienColumns: ExtendedColDef[] = [
     {
@@ -90,6 +110,30 @@ export const immobilienColumns: ExtendedColDef[] = [
             type: 'address',
             placeholder: 'Adresse eingeben...'
         }
+    },
+    {
+        field: 'mieter',
+        headerName: 'Mieter',
+        ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 150,
+        cellRenderer: AssociatedKontakteRenderer
+    },
+    {
+        field: 'eigentümer',
+        headerName: 'Eigentümer',
+        ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 150,
+        cellRenderer: AssociatedKontakteRenderer
+    },
+    {
+        field: 'dienstleister',
+        headerName: 'Dienstleister',
+        ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 150,
+        cellRenderer: AssociatedKontakteRenderer
     },
     {
         field: 'bild',
@@ -151,6 +195,17 @@ export const kontakteColumns: ExtendedColDef[] = [
             label: 'Adresse',
             type: 'address',
             placeholder: 'Adresse eingeben...'
+        }
+    },
+    {
+        field: 'associated_immobilien',
+        headerName: 'Verknüpfte Immobilien',
+        ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 250,
+        cellRenderer: AssociatedImmobilienRenderer,
+        cellRendererParams: {
+            suppressCount: true
         }
     },
     {

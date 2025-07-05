@@ -48,6 +48,91 @@ export async function GET(
                 immobilien_summary: item.immobilien ? `${item.immobilien.titel} - ${item.immobilien.adresse}` : 'Unbekannte Immobilie',
                 kontakt_summary: item.kontakt ? `${item.kontakt.name} - ${item.kontakt.adresse}` : 'Unbekannter Kontakt'
             })) || []
+        } else if (table === 'kontakte') {
+            // Special handling for kontakte to include associated immobilien
+            const { data: kontakteData, error: kontakteError } = await supabase
+                .from(table)
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (kontakteError) {
+                console.error(`Error fetching ${table}:`, kontakteError)
+                const errorMessages = getTableErrorMessages(table)
+                return NextResponse.json(
+                    { error: errorMessages.fetch },
+                    { status: 500 }
+                )
+            }
+
+            // Get associated immobilien for each kontakt
+            const kontakteWithImmobilien = await Promise.all(
+                kontakteData?.map(async (kontakt) => {
+                    const { data: beziehungenData } = await supabase
+                        .from('beziehungen')
+                        .select(`
+                            art,
+                            immobilien:immobilien_id(titel)
+                        `)
+                        .eq('kontakt_id', kontakt.id)
+
+                    const associatedImmobilien = beziehungenData?.map((beziehung: any) => ({
+                        art: beziehung.art,
+                        immobilien_titel: beziehung.immobilien?.titel || 'Unbekannte Immobilie'
+                    })) || []
+
+                    return {
+                        ...kontakt,
+                        associated_immobilien: associatedImmobilien
+                    }
+                }) || []
+            )
+
+            data = kontakteWithImmobilien
+        } else if (table === 'immobilien') {
+            // Special handling for immobilien to include associated kontakte
+            const { data: immobilienData, error: immobilienError } = await supabase
+                .from(table)
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (immobilienError) {
+                console.error(`Error fetching ${table}:`, immobilienError)
+                const errorMessages = getTableErrorMessages(table)
+                return NextResponse.json(
+                    { error: errorMessages.fetch },
+                    { status: 500 }
+                )
+            }
+
+            // Get associated kontakte for each immobilien, grouped by relationship type
+            const immobilienWithKontakte = await Promise.all(
+                immobilienData?.map(async (immobilie) => {
+                    const { data: beziehungenData } = await supabase
+                        .from('beziehungen')
+                        .select(`
+                            art,
+                            kontakt:kontakt_id(name)
+                        `)
+                        .eq('immobilien_id', immobilie.id)
+
+                    // Group kontakte by relationship type
+                    const mieter = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Mieter')
+                        .map((beziehung: any) => beziehung.kontakt) || []
+                    const eigentümer = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Eigentümer')
+                        .map((beziehung: any) => beziehung.kontakt) || []
+                    const dienstleister = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Dienstleister')
+                        .map((beziehung: any) => beziehung.kontakt) || []
+
+                    return {
+                        ...immobilie,
+                        mieter,
+                        eigentümer,
+                        dienstleister
+                    }
+                }) || []
+            )
+
+            data = immobilienWithKontakte
         } else {
             // Standard handling for other tables
             const result = await supabase

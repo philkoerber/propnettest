@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useCreateEntry } from '../hooks/useCreateEntry'
 import { useUpdateEntry } from '../hooks/useUpdateEntry'
 import { ExtendedColDef, getFormFields } from '../../lib/columnDefinitions'
+import AddressAutocomplete from './AddressAutocomplete'
 
 interface EntryModalProps {
     endpoint: string
@@ -134,17 +135,13 @@ export default function EntryModal({
                     />
                 )
             case 'address':
-                // Placeholder for Google Places Autocomplete integration
                 return (
-                    <input
-                        type="text"
+                    <AddressAutocomplete
                         name={name}
                         value={formData[name] || ''}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
+                        onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Adresse suchen...'}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    // TODO: Replace with Google Places Autocomplete
                     />
                 )
             default:

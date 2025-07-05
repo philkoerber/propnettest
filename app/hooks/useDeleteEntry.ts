@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNotifications } from './useNotifications'
 
 interface UseDeleteEntryReturn {
-    deleteEntry: (id: number) => Promise<void>
+    deleteEntry: (id: string) => Promise<void>
     loading: boolean
     error: string | null
     resetError: () => void
@@ -13,7 +13,7 @@ export function useDeleteEntry(endpoint: string): UseDeleteEntryReturn {
     const [error, setError] = useState<string | null>(null)
     const { showSuccess, showError } = useNotifications()
 
-    const deleteEntry = async (id: number) => {
+    const deleteEntry = async (id: string) => {
         try {
             setLoading(true)
             setError(null)

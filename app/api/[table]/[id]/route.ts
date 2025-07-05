@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
+import { validateUUID } from '../../../../lib/uuidValidator'
 
 // Define allowed table names
 const ALLOWED_TABLES = ['kontakte', 'immobilien', 'beziehungen'] as const
@@ -40,10 +41,10 @@ function getTableErrorMessages(table: AllowedTable) {
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { table: string; id: string } }
+    context: { params: Promise<{ table: string; id: string }> }
 ) {
     try {
-        const { table, id } = params
+        const { table, id } = await context.params
 
         if (!isValidTable(table)) {
             return NextResponse.json(
@@ -52,11 +53,11 @@ export async function DELETE(
             )
         }
 
-        const idNum = parseInt(id)
-
-        if (isNaN(idNum)) {
+        // Validate UUID format
+        const uuidValidation = validateUUID(id)
+        if (!uuidValidation.isValid) {
             return NextResponse.json(
-                { error: 'Invalid ID format' },
+                { error: uuidValidation.error },
                 { status: 400 }
             )
         }
@@ -64,7 +65,7 @@ export async function DELETE(
         const { error } = await supabase
             .from(table)
             .delete()
-            .eq('id', idNum)
+            .eq('id', id)
 
         if (error) {
             console.error(`Error deleting ${table}:`, error)
@@ -87,10 +88,10 @@ export async function DELETE(
 
 export async function PATCH(
     request: Request,
-    { params }: { params: { table: string; id: string } }
+    context: { params: Promise<{ table: string; id: string }> }
 ) {
     try {
-        const { table, id } = params
+        const { table, id } = await context.params
 
         if (!isValidTable(table)) {
             return NextResponse.json(
@@ -100,11 +101,12 @@ export async function PATCH(
         }
 
         const body = await request.json()
-        const idNum = parseInt(id)
 
-        if (isNaN(idNum)) {
+        // Validate UUID format
+        const uuidValidation = validateUUID(id)
+        if (!uuidValidation.isValid) {
             return NextResponse.json(
-                { error: 'Invalid ID format' },
+                { error: uuidValidation.error },
                 { status: 400 }
             )
         }
@@ -113,7 +115,7 @@ export async function PATCH(
         const { data: currentData, error: fetchError } = await supabase
             .from(table)
             .select('*')
-            .eq('id', idNum)
+            .eq('id', id)
             .single()
 
         if (fetchError) {
@@ -150,7 +152,7 @@ export async function PATCH(
         const { data, error } = await supabase
             .from(table)
             .update(changedFields)
-            .eq('id', idNum)
+            .eq('id', id)
             .select()
 
         if (error) {

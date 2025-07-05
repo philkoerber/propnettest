@@ -75,7 +75,7 @@ interface DataTableProps {
     error?: string | null
     title?: string
     onRowClick?: (rowData: any) => void
-    onDelete?: (id: number) => Promise<void>
+    onDelete?: (id: string) => Promise<void>
     onEdit?: (rowData: any) => void
     className?: string
     columnDefs?: ColDef[]
@@ -95,8 +95,8 @@ export default function DataTable({
     endpoint
 }: DataTableProps) {
     const [gridApi, setGridApi] = useState<any>(null)
-    const [deletingRows, setDeletingRows] = useState<Set<number>>(new Set())
-    const [editingRows, setEditingRows] = useState<Set<number>>(new Set())
+    const [deletingRows, setDeletingRows] = useState<Set<string>>(new Set())
+    const [editingRows, setEditingRows] = useState<Set<string>>(new Set())
 
     // Use provided column definitions or generate them dynamically
     const columnDefs = useMemo((): ColDef[] => {
@@ -188,7 +188,7 @@ export default function DataTable({
     const handleDelete = useMemo(() => {
         if (!onDelete) return undefined
 
-        return async (id: number) => {
+        return async (id: string) => {
             setDeletingRows(prev => new Set(prev).add(id))
             try {
                 await onDelete(id)

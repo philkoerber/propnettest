@@ -14,7 +14,7 @@ export default function ImmobilienPage() {
     const [editData, setEditData] = useState<any>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         try {
             await deleteEntry(id)
             refetch() // Refresh the data after deletion
@@ -24,6 +24,7 @@ export default function ImmobilienPage() {
     }
 
     const handleEdit = (rowData: any) => {
+        console.log(rowData)
         setEditData(rowData)
         setIsEditModalOpen(true)
     }

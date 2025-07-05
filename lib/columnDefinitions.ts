@@ -211,7 +211,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
                 'Dienstleister': 'bg-orange-100 text-orange-800'
             }
             const colorClass = artColors[art] || 'bg-gray-100 text-gray-800'
-            return `<span class="px-2 py-1 text-xs font-medium rounded-full ${colorClass}">${art}</span>`
+            return art
         },
         formField: {
             name: 'art',
@@ -256,7 +256,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
             if (params.value) {
                 return new Date(params.value).toLocaleDateString('de-DE')
             }
-            return 'Aktiv'
+            return '-'
         },
         formField: {
             name: 'enddatum',

@@ -80,16 +80,25 @@ export default function EntryModal({
                 return []
             }
 
-            return (relationshipsData || []).map((rel: any) => ({
-                id: rel.id,
-                immobilien_id: rel.immobilien_id,
-                kontakt_id: rel.kontakt_id,
-                art: rel.art,
-                startdatum: rel.startdatum,
-                enddatum: rel.enddatum,
-                immobilien_titel: rel.immobilien?.titel,
-                kontakt_name: rel.kontakt?.name
-            }))
+            return (relationshipsData || []).map((rel: any) => {
+                // Format dates for input fields (YYYY-MM-DD format)
+                const formatDateForInput = (dateString: string | null) => {
+                    if (!dateString) return ''
+                    const date = new Date(dateString)
+                    return date.toISOString().split('T')[0]
+                }
+
+                return {
+                    id: rel.id,
+                    immobilien_id: rel.immobilien_id,
+                    kontakt_id: rel.kontakt_id,
+                    art: rel.art,
+                    startdatum: formatDateForInput(rel.startdatum),
+                    enddatum: formatDateForInput(rel.enddatum),
+                    immobilien_titel: rel.immobilien?.titel,
+                    kontakt_name: rel.kontakt?.name
+                }
+            })
         } catch (error) {
             console.error('Error fetching relationships:', error)
             return []
@@ -308,7 +317,7 @@ export default function EntryModal({
             />
             {/* Modal */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" onClick={(e) => e.stopPropagation()}>
+                <div className="relative mx-auto p-5 border w-[600px] max-w-[90vw] shadow-lg rounded-md bg-white" onClick={(e) => e.stopPropagation()}>
                     <div className="mt-3">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-medium text-gray-900">

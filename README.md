@@ -44,6 +44,8 @@ lib/
 entferne "unknown" types
 integriere schemas in glabal type logic
 
+date formatting konsistent machen
+
 ## Entwicklung
 
 ```bash

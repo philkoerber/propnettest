@@ -18,6 +18,7 @@ interface DataTableProps {
     title?: string
     onRowClick?: (rowData: any) => void
     className?: string
+    columnDefs?: ColDef[]
 }
 
 export default function DataTable({
@@ -26,12 +27,19 @@ export default function DataTable({
     error = null,
     title,
     onRowClick,
-    className = ''
+    className = '',
+    columnDefs: providedColumnDefs
 }: DataTableProps) {
     const [gridApi, setGridApi] = useState<any>(null)
 
-    // Dynamically generate column definitions based on data structure
+    // Use provided column definitions or generate them dynamically
     const columnDefs = useMemo((): ColDef[] => {
+        // If column definitions are provided, use them
+        if (providedColumnDefs) {
+            return providedColumnDefs
+        }
+
+        // Fallback to dynamic generation if no data
         if (!data || data.length === 0) return []
 
         // Get the first row to determine column structure
@@ -90,14 +98,14 @@ export default function DataTable({
         })
 
         return columns
-    }, [data])
+    }, [data, providedColumnDefs])
 
     // Grid options
     const gridOptions: GridOptions = useMemo(() => ({
         columnDefs,
         rowData: data,
         pagination: true,
-        paginationPageSize: 20,
+        paginationPageSize: 15,
         paginationPageSizeSelector: [10, 20, 50, 100],
         domLayout: 'autoHeight',
         suppressRowClickSelection: false,
@@ -151,9 +159,50 @@ export default function DataTable({
 
     if (!data || data.length === 0) {
         return (
-            <div className={`ag-theme-alpine ${className}`} style={{ height: '400px' }}>
-                <div className="flex items-center justify-center h-full">
-                    <div className="text-gray-500">No data available</div>
+            <div className={`w-full ${className}`}>
+                {title && (
+                    <div className="mb-4">
+                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                    </div>
+                )}
+                <div
+                    className="ag-theme-alpine w-full"
+                    style={{
+                        height: '600px',
+                        '--ag-header-height': '50px',
+                        '--ag-row-height': '50px',
+                        '--ag-header-background-color': '#f8fafc',
+                        '--ag-header-foreground-color': '#374151',
+                        '--ag-border-color': '#e5e7eb',
+                        '--ag-row-hover-color': '#f3f4f6'
+                    } as React.CSSProperties}
+                >
+                    <AgGridReact
+                        columnDefs={columnDefs}
+                        rowData={[]}
+                        pagination={true}
+                        paginationPageSize={15}
+                        paginationPageSizeSelector={[10, 20, 50, 100]}
+                        domLayout="autoHeight"
+                        rowSelection="single"
+                        animateRows={true}
+                        defaultColDef={{
+                            sortable: true,
+                            filter: true,
+                            resizable: true,
+                            minWidth: 100,
+                            flex: 1
+                        }}
+                        onGridReady={(params) => {
+                            setGridApi(params.api)
+                        }}
+                        onRowClicked={(event) => {
+                            if (onRowClick) {
+                                onRowClick(event.data)
+                            }
+                        }}
+                        theme="legacy"
+                    />
                 </div>
             </div>
         )

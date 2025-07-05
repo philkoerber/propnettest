@@ -2,6 +2,8 @@
 
 import { useApiData } from '../hooks/useApiData'
 import DataTable from '../components/DataTable'
+import AddEntryButton from '../components/AddEntryButton'
+import { beziehungenColumns } from '../../lib/columnDefinitions'
 
 export default function LinksPage() {
     const { data, loading, error, refetch } = useApiData('beziehungen')
@@ -15,11 +17,22 @@ export default function LinksPage() {
                 </p>
             </div>
 
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Beziehungen</h2>
+                <AddEntryButton
+                    endpoint="beziehungen"
+                    title="Beziehung"
+                    onSuccess={refetch}
+                    columnDefs={beziehungenColumns}
+                    buttonText="Neue Beziehung hinzufügen"
+                />
+            </div>
+
             <DataTable
                 data={data}
                 loading={loading}
                 error={error}
-                title="Beziehungen"
+                columnDefs={beziehungenColumns}
                 onRowClick={(rowData) => {
                     console.log('Selected relationship:', rowData)
                     // Handle row click - could open edit modal, navigate to detail page, etc.

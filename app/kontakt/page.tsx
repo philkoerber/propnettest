@@ -2,6 +2,8 @@
 
 import { useApiData } from '../hooks/useApiData'
 import DataTable from '../components/DataTable'
+import AddEntryButton from '../components/AddEntryButton'
+import { kontakteColumns } from '../../lib/columnDefinitions'
 
 export default function KontaktPage() {
     const { data, loading, error, refetch } = useApiData('kontakte')
@@ -15,11 +17,22 @@ export default function KontaktPage() {
                 </p>
             </div>
 
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Kontakte</h2>
+                <AddEntryButton
+                    endpoint="kontakte"
+                    title="Kontakt"
+                    onSuccess={refetch}
+                    columnDefs={kontakteColumns}
+                    buttonText="Neuen Kontakt hinzufügen"
+                />
+            </div>
+
             <DataTable
                 data={data}
                 loading={loading}
                 error={error}
-                title="Kontakte"
+                columnDefs={kontakteColumns}
                 onRowClick={(rowData) => {
                     console.log('Selected contact:', rowData)
                     // Handle row click - could open edit modal, navigate to detail page, etc.

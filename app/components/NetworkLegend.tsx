@@ -35,7 +35,7 @@ export default function NetworkLegend() {
                 </div>
             </div>
             <div className="mt-4 text-xs text-gray-500">
-                <p>💡 Tipp: Klicken Sie auf eine Verbindung, um die Beziehung zu bearbeiten</p>
+                <p>💡 Tipp: Auf Verbindung klicken, um zu bearbeiten. (Achtung: Nur im Premium-Tier verfügbar!!1!)</p>
             </div>
         </div>
     )

@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useCreateEntry } from '../hooks/useCreateEntry'
 import { useUpdateEntry } from '../hooks/useUpdateEntry'
+import { useFetchEntityWithRelationships } from '../hooks/useFetchEntityWithRelationships'
 import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefinitions'
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
 import RelationshipManager from './RelationshipManager'
-import { supabase } from '../../lib/supabase'
 
 interface EntryModalProps {
     endpoint: string
@@ -33,6 +33,20 @@ interface Relationship {
     kontakt_name?: string
 }
 
+// Helper function to filter virtual fields
+const filterVirtualFields = (entityData: Record<string, unknown>) => {
+    const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
+    const filteredEntityData: Record<string, unknown> = {}
+
+    Object.keys(entityData).forEach(key => {
+        if (!virtualFields.includes(key) && entityData[key] !== undefined && entityData[key] !== null && entityData[key] !== '') {
+            filteredEntityData[key] = entityData[key]
+        }
+    })
+
+    return filteredEntityData
+}
+
 export default function EntryModal({
     endpoint,
     modalTitle,
@@ -48,8 +62,12 @@ export default function EntryModal({
     const { createEntry, loading: createLoading, error: createError, resetError: resetCreateError } = useCreateEntry(endpoint)
     const { updateEntry, loading: updateLoading, error: updateError, resetError: resetUpdateError } = useUpdateEntry(endpoint)
 
-    const loading = createLoading || updateLoading
-    const error = createError || updateError
+    // Use the new hook for fetching entity with relationships
+    const entityId = editMode && editData ? (editData.id as string) : null
+    const { entity: fetchedEntity, loading: entityLoading, error: entityError, refetch: refetchEntity } = useFetchEntityWithRelationships(endpoint, entityId)
+
+    const loading = createLoading || updateLoading || entityLoading
+    const error = createError || updateError || entityError
     const resetError = () => {
         resetCreateError()
         resetUpdateError()
@@ -58,76 +76,15 @@ export default function EntryModal({
     // Extract form fields from column definitions
     const fields = getFormFields(columnDefs)
 
-    // Function to fetch relationships for editing
-    const fetchRelationshipsForEdit = async (entityId: string, entityType: string): Promise<Relationship[]> => {
-        try {
-            const { data: relationshipsData, error } = await supabase
-                .from('beziehungen')
-                .select(`
-                    id,
-                    immobilien_id,
-                    kontakt_id,
-                    art,
-                    startdatum,
-                    enddatum,
-                    immobilien:immobilien_id(titel),
-                    kontakt:kontakt_id(name)
-                `)
-                .eq(entityType === 'immobilien' ? 'immobilien_id' : 'kontakt_id', entityId)
-
-            if (error) {
-                console.error('Error fetching relationships:', error)
-                return []
-            }
-
-            return (relationshipsData || []).map((rel: any) => {
-                // Format dates for input fields (YYYY-MM-DD format)
-                const formatDateForInput = (dateString: string | null) => {
-                    if (!dateString) return ''
-                    const date = new Date(dateString)
-                    return date.toISOString().split('T')[0]
-                }
-
-                return {
-                    id: rel.id,
-                    immobilien_id: rel.immobilien_id,
-                    kontakt_id: rel.kontakt_id,
-                    art: rel.art,
-                    startdatum: formatDateForInput(rel.startdatum),
-                    enddatum: formatDateForInput(rel.enddatum),
-                    immobilien_titel: rel.immobilien?.titel,
-                    kontakt_name: rel.kontakt?.name
-                }
-            })
-        } catch (error) {
-            console.error('Error fetching relationships:', error)
-            return []
-        }
-    }
-
     // Initialize form data when edit mode is enabled
     useEffect(() => {
-        const initializeFormData = async () => {
-            if (editMode && editData) {
-                // Start with the basic edit data
-                let initialFormData = { ...editData }
-
-                // If this is an immobilien or kontakt entity, fetch the relationships
-                if (endpoint === 'immobilien' || endpoint === 'kontakte') {
-                    const relationships = await fetchRelationshipsForEdit(editData.id as string, endpoint)
-                    initialFormData.relationships = relationships
-                }
-
-                setFormData(initialFormData)
-            } else {
-                setFormData({})
-            }
+        if (editMode && fetchedEntity) {
+            // Use the fetched entity data which already includes relationships
+            setFormData(fetchedEntity)
+        } else if (!editMode) {
+            setFormData({})
         }
-
-        if (isOpen) {
-            initializeFormData()
-        }
-    }, [editMode, editData, isOpen, endpoint])
+    }, [editMode, fetchedEntity])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -135,16 +92,7 @@ export default function EntryModal({
         try {
             // Extract relationships from form data and structure the request
             const { relationships, ...entityData } = formData
-
-            // Filter out virtual fields that don't exist in the database
-            const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
-            const filteredEntityData: Record<string, unknown> = {}
-
-            Object.keys(entityData).forEach(key => {
-                if (!virtualFields.includes(key) && entityData[key] !== undefined && entityData[key] !== null && entityData[key] !== '') {
-                    filteredEntityData[key] = entityData[key]
-                }
-            })
+            const filteredEntityData = filterVirtualFields(entityData)
 
             // Structure the request data
             const requestData: Record<string, unknown> = {
@@ -153,7 +101,7 @@ export default function EntryModal({
 
             // Add relationships if they exist and are not empty
             if (relationships && Array.isArray(relationships) && relationships.length > 0) {
-                // Clean up relationships data (remove temporary IDs and unnecessary fields)
+                // Remove temporary IDs and unnecessary fields from relationships
                 const cleanedRelationships = relationships.map((rel: any) => {
                     const { id, immobilien_titel, kontakt_name, ...cleanRel } = rel
                     return cleanRel

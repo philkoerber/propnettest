@@ -6,6 +6,170 @@ import {
     COMMON_ERROR_MESSAGES
 } from '../../../lib/errorMessages'
 
+// Helper function to handle database errors
+const handleDatabaseError = (error: any, table: string, operation: 'fetch' | 'create' | 'update' | 'delete') => {
+    console.error(`Error ${operation} ${table}:`, error)
+    const errorMessages = getTableErrorMessages(table as any)
+    return NextResponse.json(
+        { error: errorMessages[operation] || 'Unknown error' },
+        { status: 500 }
+    )
+}
+
+// Helper function to fetch and transform beziehungen data
+const fetchBeziehungenData = async () => {
+    const { data: beziehungenData, error: beziehungenError } = await supabase
+        .from('beziehungen')
+        .select(`
+            *,
+            immobilien:immobilien_id(titel, adresse, beschreibung),
+            kontakt:kontakt_id(name, adresse)
+        `)
+        .order('created_at', { ascending: false })
+
+    if (beziehungenError) {
+        throw beziehungenError
+    }
+
+    return beziehungenData?.map(item => ({
+        ...item,
+        immobilien_summary: item.immobilien ? `${item.immobilien.titel} - ${item.immobilien.adresse}` : 'Unbekannte Immobilie',
+        kontakt_summary: item.kontakt ? `${item.kontakt.name} - ${item.kontakt.adresse}` : 'Unbekannter Kontakt'
+    })) || []
+}
+
+// Helper function to fetch kontakte with associated immobilien
+const fetchKontakteWithImmobilien = async () => {
+    const { data: kontakteData, error: kontakteError } = await supabase
+        .from('kontakte')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (kontakteError) {
+        throw kontakteError
+    }
+
+    const kontakteWithImmobilien = await Promise.all(
+        kontakteData?.map(async (kontakt: Record<string, unknown>) => {
+            const { data: beziehungenData } = await supabase
+                .from('beziehungen')
+                .select(`
+                    art,
+                    immobilien:immobilien_id(titel)
+                `)
+                .eq('kontakt_id', kontakt.id)
+
+            const associatedImmobilien = (beziehungenData as unknown[] | undefined)?.map((beziehung: unknown) => {
+                const b = beziehung as { art?: string; immobilien?: { titel?: string } }
+                return {
+                    art: b.art,
+                    immobilien_titel: b.immobilien?.titel || 'Unbekannte Immobilie'
+                }
+            }) || []
+
+            return {
+                ...kontakt,
+                associated_immobilien: associatedImmobilien
+            }
+        }) || []
+    )
+
+    return kontakteWithImmobilien
+}
+
+// Helper function to fetch immobilien with associated kontakte
+const fetchImmobilienWithKontakte = async () => {
+    const { data: immobilienData, error: immobilienError } = await supabase
+        .from('immobilien')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (immobilienError) {
+        throw immobilienError
+    }
+
+    const immobilienWithKontakte = await Promise.all(
+        immobilienData?.map(async (immobilie: Record<string, unknown>) => {
+            const { data: beziehungenData } = await supabase
+                .from('beziehungen')
+                .select(`
+                    art,
+                    kontakt:kontakt_id(name)
+                `)
+                .eq('immobilien_id', immobilie.id)
+
+            // Group kontakte by relationship type
+            const mieter = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Mieter')
+                .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
+            const eigentümer = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Eigentümer')
+                .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
+            const dienstleister = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Dienstleister')
+                .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
+
+            return {
+                ...immobilie,
+                mieter,
+                eigentümer,
+                dienstleister
+            }
+        }) || []
+    )
+
+    return immobilienWithKontakte
+}
+
+// Helper function to fetch standard table data
+const fetchStandardTableData = async (table: string) => {
+    const result = await supabase
+        .from(table)
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (result.error) {
+        throw result.error
+    }
+
+    return result.data
+}
+
+// Helper function to filter virtual fields from entity data
+const filterVirtualFields = (entityData: Record<string, unknown>) => {
+    const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
+    const filteredEntityData: Record<string, unknown> = {}
+
+    Object.keys(entityData).forEach(key => {
+        if (!virtualFields.includes(key)) {
+            filteredEntityData[key] = entityData[key]
+        }
+    })
+
+    return filteredEntityData
+}
+
+// Helper function to create relationship data
+const createRelationshipData = (relationships: any[], table: string, entityId: string) => {
+    return relationships.map((rel: any) => {
+        if (table === 'immobilien') {
+            return {
+                immobilien_id: entityId,
+                kontakt_id: rel.kontakt_id,
+                art: rel.art,
+                startdatum: rel.startdatum,
+                enddatum: rel.enddatum
+            }
+        } else if (table === 'kontakte') {
+            return {
+                immobilien_id: rel.immobilien_id,
+                kontakt_id: entityId,
+                art: rel.art,
+                startdatum: rel.startdatum,
+                enddatum: rel.enddatum
+            }
+        }
+        return rel
+    })
+}
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ table: string }> }
@@ -20,140 +184,21 @@ export async function GET(
             )
         }
 
-        let data, error
+        let data
 
-        // Special handling for beziehungen to include joined data
-        if (table === 'beziehungen') {
-            const { data: beziehungenData, error: beziehungenError } = await supabase
-                .from(table)
-                .select(`
-                    *,
-                    immobilien:immobilien_id(titel, adresse, beschreibung),
-                    kontakt:kontakt_id(name, adresse)
-                `)
-                .order('created_at', { ascending: false })
-
-            if (beziehungenError) {
-                console.error(`Error fetching ${table}:`, beziehungenError)
-                const errorMessages = getTableErrorMessages(table)
-                return NextResponse.json(
-                    { error: errorMessages.fetch },
-                    { status: 500 }
-                )
-            }
-
-            // Transform the data to include summary fields
-            data = beziehungenData?.map(item => ({
-                ...item,
-                immobilien_summary: item.immobilien ? `${item.immobilien.titel} - ${item.immobilien.adresse}` : 'Unbekannte Immobilie',
-                kontakt_summary: item.kontakt ? `${item.kontakt.name} - ${item.kontakt.adresse}` : 'Unbekannter Kontakt'
-            })) || []
-        } else if (table === 'kontakte') {
-            // Special handling for kontakte to include associated immobilien
-            const { data: kontakteData, error: kontakteError } = await supabase
-                .from(table)
-                .select('*')
-                .order('created_at', { ascending: false })
-
-            if (kontakteError) {
-                console.error(`Error fetching ${table}:`, kontakteError)
-                const errorMessages = getTableErrorMessages(table)
-                return NextResponse.json(
-                    { error: errorMessages.fetch },
-                    { status: 500 }
-                )
-            }
-
-            // Get associated immobilien for each kontakt
-            const kontakteWithImmobilien = await Promise.all(
-                kontakteData?.map(async (kontakt: Record<string, unknown>) => {
-                    const { data: beziehungenData } = await supabase
-                        .from('beziehungen')
-                        .select(`
-                            art,
-                            immobilien:immobilien_id(titel)
-                        `)
-                        .eq('kontakt_id', kontakt.id)
-
-                    const associatedImmobilien = (beziehungenData as unknown[] | undefined)?.map((beziehung: unknown) => {
-                        const b = beziehung as { art?: string; immobilien?: { titel?: string } }
-                        return {
-                            art: b.art,
-                            immobilien_titel: b.immobilien?.titel || 'Unbekannte Immobilie'
-                        }
-                    }) || []
-
-                    return {
-                        ...kontakt,
-                        associated_immobilien: associatedImmobilien
-                    }
-                }) || []
-            )
-
-            data = kontakteWithImmobilien
-        } else if (table === 'immobilien') {
-            // Special handling for immobilien to include associated kontakte
-            const { data: immobilienData, error: immobilienError } = await supabase
-                .from(table)
-                .select('*')
-                .order('created_at', { ascending: false })
-
-            if (immobilienError) {
-                console.error(`Error fetching ${table}:`, immobilienError)
-                const errorMessages = getTableErrorMessages(table)
-                return NextResponse.json(
-                    { error: errorMessages.fetch },
-                    { status: 500 }
-                )
-            }
-
-            // Get associated kontakte for each immobilien, grouped by relationship type
-            const immobilienWithKontakte = await Promise.all(
-                immobilienData?.map(async (immobilie: Record<string, unknown>) => {
-                    const { data: beziehungenData } = await supabase
-                        .from('beziehungen')
-                        .select(`
-                            art,
-                            kontakt:kontakt_id(name)
-                        `)
-                        .eq('immobilien_id', immobilie.id)
-
-                    // Group kontakte by relationship type
-                    const mieter = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Mieter')
-                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
-                    const eigentümer = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Eigentümer')
-                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
-                    const dienstleister = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Dienstleister')
-                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
-
-                    return {
-                        ...immobilie,
-                        mieter,
-                        eigentümer,
-                        dienstleister
-                    }
-                }) || []
-            )
-
-            data = immobilienWithKontakte
-        } else {
-            // Standard handling for other tables
-            const result = await supabase
-                .from(table)
-                .select('*')
-                .order('created_at', { ascending: false })
-
-            data = result.data
-            error = result.error
-        }
-
-        if (error) {
-            console.error(`Error fetching ${table}:`, error)
-            const errorMessages = getTableErrorMessages(table)
-            return NextResponse.json(
-                { error: errorMessages.fetch },
-                { status: 500 }
-            )
+        // Use a switch statement for cleaner table-specific handling
+        switch (table) {
+            case 'beziehungen':
+                data = await fetchBeziehungenData()
+                break
+            case 'kontakte':
+                data = await fetchKontakteWithImmobilien()
+                break
+            case 'immobilien':
+                data = await fetchImmobilienWithKontakte()
+                break
+            default:
+                data = await fetchStandardTableData(table)
         }
 
         return NextResponse.json(data)
@@ -181,21 +226,10 @@ export async function POST(
         }
 
         const body = await request.json()
-
-        // Extract relationships from the request body if they exist
         const { relationships, ...entityData } = body
+        const filteredEntityData = filterVirtualFields(entityData)
 
-        // Filter out virtual fields that don't exist in the database
-        const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
-        const filteredEntityData: Record<string, unknown> = {}
-
-        Object.keys(entityData).forEach(key => {
-            if (!virtualFields.includes(key)) {
-                filteredEntityData[key] = entityData[key]
-            }
-        })
-
-        // Start a transaction
+        // Create the entity
         const { data: entity, error: entityError } = await supabase
             .from(table)
             .insert(filteredEntityData)
@@ -203,36 +237,12 @@ export async function POST(
             .single()
 
         if (entityError) {
-            console.error(`Error creating ${table}:`, entityError)
-            const errorMessages = getTableErrorMessages(table)
-            return NextResponse.json(
-                { error: errorMessages.create },
-                { status: 500 }
-            )
+            return handleDatabaseError(entityError, table, 'create')
         }
 
-        // If relationships are provided, create them
+        // Create relationships if provided
         if (relationships && Array.isArray(relationships) && relationships.length > 0) {
-            const relationshipData = relationships.map((rel: any) => {
-                if (table === 'immobilien') {
-                    return {
-                        immobilien_id: entity.id,
-                        kontakt_id: rel.kontakt_id,
-                        art: rel.art,
-                        startdatum: rel.startdatum,
-                        enddatum: rel.enddatum
-                    }
-                } else if (table === 'kontakte') {
-                    return {
-                        immobilien_id: rel.immobilien_id,
-                        kontakt_id: entity.id,
-                        art: rel.art,
-                        startdatum: rel.startdatum,
-                        enddatum: rel.enddatum
-                    }
-                }
-                return rel
-            })
+            const relationshipData = createRelationshipData(relationships, table, entity.id)
 
             const { error: relationshipsError } = await supabase
                 .from('beziehungen')
@@ -240,15 +250,13 @@ export async function POST(
 
             if (relationshipsError) {
                 console.error('Error creating relationships:', relationshipsError)
-                // Note: We don't rollback the entity creation here as it might be useful
-                // In a production environment, you might want to implement proper transaction rollback
                 return NextResponse.json(
                     {
                         error: 'Entity created but relationships failed to create',
                         entity,
                         relationshipError: relationshipsError.message
                     },
-                    { status: 207 } // 207 Multi-Status
+                    { status: 207 }
                 )
             }
         }

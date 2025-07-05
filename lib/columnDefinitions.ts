@@ -13,10 +13,11 @@ import {
 export interface FormField {
     name: string
     label: string
-    type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'address' | 'immobilie' | 'kontakt'
+    type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'address' | 'immobilie' | 'kontakt' | 'relationships'
     required?: boolean
     options?: { value: string; label: string }[]
     placeholder?: string
+    relationshipType?: 'immobilien' | 'kontakte' // For relationship fields
 }
 
 // Extended column definition with form field metadata
@@ -124,6 +125,19 @@ export const immobilienColumns: ExtendedColDef[] = [
         width: 120,
         ...commonColumnConfig,
         cellRenderer: DateRenderer
+    },
+    {
+        field: 'relationships',
+        headerName: 'Beziehungen',
+        ...commonColumnConfig,
+        width: 300,
+        formField: {
+            name: 'relationships',
+            label: 'Beziehungen verwalten',
+            type: 'relationships',
+            relationshipType: 'immobilien',
+            placeholder: 'Beziehungen zu Kontakten verwalten...'
+        }
     }
 ]
 
@@ -176,6 +190,19 @@ export const kontakteColumns: ExtendedColDef[] = [
         width: 120,
         ...commonColumnConfig,
         cellRenderer: DateRenderer
+    },
+    {
+        field: 'relationships',
+        headerName: 'Beziehungen',
+        ...commonColumnConfig,
+        width: 300,
+        formField: {
+            name: 'relationships',
+            label: 'Beziehungen verwalten',
+            type: 'relationships',
+            relationshipType: 'kontakte',
+            placeholder: 'Beziehungen zu Immobilien verwalten...'
+        }
     }
 ]
 

@@ -8,10 +8,10 @@ import {
 
 export async function GET(
     request: Request,
-    { params }: { params: { table: string } }
+    { params }: { params: Promise<{ table: string }> }
 ) {
     try {
-        const { table } = params
+        const { table } = await params
 
         if (!isValidTable(table)) {
             return NextResponse.json(
@@ -168,10 +168,10 @@ export async function GET(
 
 export async function POST(
     request: Request,
-    { params }: { params: { table: string } }
+    { params }: { params: Promise<{ table: string }> }
 ) {
     try {
-        const { table } = params
+        const { table } = await params
 
         if (!isValidTable(table)) {
             return NextResponse.json(

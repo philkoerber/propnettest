@@ -7,6 +7,7 @@ import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefini
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
+import RelationshipManager from './RelationshipManager'
 
 interface EntryModalProps {
     endpoint: string
@@ -81,7 +82,7 @@ export default function EntryModal({
     }
 
     const renderField = (field: FormField) => {
-        const { name, type, required, options, placeholder } = field
+        const { name, type, required, options, placeholder, relationshipType } = field
 
         switch (type) {
             case 'textarea':
@@ -150,7 +151,6 @@ export default function EntryModal({
                 return (
                     <ImmobilienAutocomplete
                         name={name}
-                        value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Immobilie suchen...'}
@@ -160,10 +160,18 @@ export default function EntryModal({
                 return (
                     <KontaktAutocomplete
                         name={name}
-                        value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Kontakt suchen...'}
+                    />
+                )
+            case 'relationships':
+                return (
+                    <RelationshipManager
+                        name={name}
+                        onChange={handleInputChange}
+                        relationshipType={relationshipType || 'immobilien'}
+                        currentRelationships={(formData[name] as Array<{ id?: string; immobilien_id?: string | number; kontakt_id?: string | number; art: string; startdatum?: string; enddatum?: string; immobilien_titel?: string; kontakt_name?: string }>) || []}
                     />
                 )
             default:

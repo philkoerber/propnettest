@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useApiData } from '../hooks/useApiData'
 import { useDeleteEntry } from '../hooks/useDeleteEntry'
 import DataTable from '../components/DataTable'
-import AddEntryButton from '../components/EntryButton'
+import EntryButton from '../components/EntryButton'
 import EntryModal from '../components/EntryModal'
 import { kontakteColumns } from '../../lib/columnDefinitions'
 
@@ -49,7 +49,7 @@ export default function KontaktPage() {
 
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">Kontakte</h2>
-                <AddEntryButton
+                <EntryButton
                     endpoint="kontakte"
                     onSuccess={handleAddSuccess}
                     columnDefs={kontakteColumns}

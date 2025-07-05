@@ -10,7 +10,7 @@ interface Kontakt {
 
 interface KontaktAutocompleteProps {
     name: string
-    onChange: (name: string, value: string | number) => void
+    onChange: (name: string, value: string | number | { id: number; name: string }) => void
     required?: boolean
     placeholder?: string
 }
@@ -94,7 +94,7 @@ export default function KontaktAutocomplete({
 
     const handleSelectKontakt = (kontakt: Kontakt) => {
         setSearchTerm(`${kontakt.name} - ${kontakt.adresse}`)
-        onChange(name, kontakt.id)
+        onChange(name, { id: kontakt.id, name: kontakt.name })
         setIsOpen(false)
     }
 

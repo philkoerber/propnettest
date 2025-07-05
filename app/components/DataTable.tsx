@@ -250,7 +250,7 @@ export default function DataTable({
         columnDefs,
         rowData: filteredData,
         pagination: true,
-        paginationPageSize: 15,
+        paginationPageSize: 10,
         paginationPageSizeSelector: [10, 20, 50, 100],
         domLayout: 'autoHeight',
         suppressRowClickSelection: false,
@@ -346,7 +346,7 @@ export default function DataTable({
                         columnDefs={columnDefs}
                         rowData={[]}
                         pagination={true}
-                        paginationPageSize={15}
+                        paginationPageSize={10}
                         paginationPageSizeSelector={[10, 20, 50, 100]}
                         domLayout="autoHeight"
                         rowSelection="single"

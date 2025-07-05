@@ -11,7 +11,7 @@ interface Immobilie {
 
 interface ImmobilienAutocompleteProps {
     name: string
-    onChange: (name: string, value: string | number) => void
+    onChange: (name: string, value: string) => void
     required?: boolean
     placeholder?: string
 }
@@ -95,7 +95,7 @@ export default function ImmobilienAutocomplete({
 
     const handleSelectImmobilie = (immobilie: Immobilie) => {
         setSearchTerm(`${immobilie.titel} - ${immobilie.adresse}`)
-        onChange(name, immobilie.id)
+        onChange(name, immobilie.id.toString())
         setIsOpen(false)
     }
 

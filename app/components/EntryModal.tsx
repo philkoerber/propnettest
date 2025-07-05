@@ -96,8 +96,8 @@ export default function EntryModal({
                 ...filteredEntityData
             }
 
-            // Add relationships if they exist and are not empty
-            if (relationships && Array.isArray(relationships) && relationships.length > 0) {
+            // Always include relationships field, even if empty
+            if (relationships && Array.isArray(relationships)) {
                 // Remove temporary IDs and unnecessary fields from relationships
                 const cleanedRelationships = relationships.map((rel: any) => {
                     const { id, immobilien_titel, kontakt_name, ...cleanRel } = rel
@@ -112,9 +112,8 @@ export default function EntryModal({
                     return true
                 })
 
-                if (cleanedRelationships.length > 0) {
-                    requestData.relationships = cleanedRelationships
-                }
+                // Always include relationships field, even if empty array
+                requestData.relationships = cleanedRelationships
             }
 
             if (editMode && editData) {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
+import { useEntityDetails } from '../hooks/useEntityDetails'
 
 interface Relationship {
     id?: string
@@ -36,6 +37,7 @@ export default function RelationshipManager({
         enddatum: ''
     })
     const [pendingUpdates, setPendingUpdates] = useState<Relationship[] | null>(null)
+    const { fetchEntityDetails, loading: entityLoading, error: entityError } = useEntityDetails()
 
     // Only update local state from props when the prop changes
     useEffect(() => {
@@ -50,14 +52,26 @@ export default function RelationshipManager({
         }
     }, [pendingUpdates, name, onChange])
 
-    const handleAddRelationship = () => {
+    const handleAddRelationship = async () => {
         if (newRelationship.art &&
             ((relationshipType === 'immobilien' && newRelationship.kontakt_id) ||
                 (relationshipType === 'kontakte' && newRelationship.immobilien_id))) {
 
+            // Fetch entity details to get the name/title
+            let entityName: string | undefined = undefined
+            if (relationshipType === 'immobilien' && newRelationship.kontakt_id) {
+                entityName = await fetchEntityDetails(newRelationship.kontakt_id.toString(), 'kontakte') || undefined
+            } else if (relationshipType === 'kontakte' && newRelationship.immobilien_id) {
+                entityName = await fetchEntityDetails(newRelationship.immobilien_id.toString(), 'immobilien') || undefined
+            }
+
             const relationship: Relationship = {
                 id: `temp-${Date.now()}`, // Temporary ID for new relationships
-                ...newRelationship
+                ...newRelationship,
+                ...(relationshipType === 'immobilien'
+                    ? { kontakt_name: entityName }
+                    : { immobilien_titel: entityName }
+                )
             }
 
             const updated = [...relationships, relationship]
@@ -79,28 +93,11 @@ export default function RelationshipManager({
         setIsAdding(false)
     }
 
-    const handleRelationshipChange = (field: string, value: string | number | { id: number; name?: string; titel?: string }) => {
-        if (field === 'kontakt_id' && typeof value === 'object' && 'id' in value && 'name' in value) {
-            // Handle kontakt selection with both ID and name
-            setNewRelationship(prev => ({
-                ...prev,
-                kontakt_id: value.id,
-                kontakt_name: value.name
-            }))
-        } else if (field === 'immobilien_id' && typeof value === 'object' && 'id' in value && 'titel' in value) {
-            // Handle immobilien selection with both ID and title
-            setNewRelationship(prev => ({
-                ...prev,
-                immobilien_id: value.id,
-                immobilien_titel: value.titel
-            }))
-        } else {
-            // Handle other fields normally
-            setNewRelationship(prev => ({
-                ...prev,
-                [field]: value
-            }))
-        }
+    const handleRelationshipChange = (field: string, value: string) => {
+        setNewRelationship(prev => ({
+            ...prev,
+            [field]: value
+        }))
     }
 
     const relationshipTypeOptions = [
@@ -119,8 +116,8 @@ export default function RelationshipManager({
                             <div className="flex-1">
                                 <div className="font-medium text-gray-900">
                                     {relationshipType === 'immobilien'
-                                        ? relationship.kontakt_name || `Kontakt ID: ${relationship.kontakt_id}`
-                                        : relationship.immobilien_titel || `Immobilie ID: ${relationship.immobilien_id}`
+                                        ? (relationship.kontakt_name || `Kontakt ID: ${relationship.kontakt_id}`)
+                                        : (relationship.immobilien_titel || `Immobilie ID: ${relationship.immobilien_id}`)
                                     }
                                 </div>
                                 <div className="text-sm text-gray-600">

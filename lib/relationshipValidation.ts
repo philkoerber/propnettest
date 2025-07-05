@@ -54,8 +54,8 @@ export class RelationshipValidator {
         return true
     }
 
-    // Validate Mieter conflicts
-    validateMieterConflicts(
+    // Validate Mieter conflicts against form relationships
+    validateMieterConflictsInForm(
         newRelationship: Relationship,
         existingRelationships: Relationship[],
         relationshipType: 'immobilien' | 'kontakte'
@@ -67,7 +67,7 @@ export class RelationshipValidator {
         const startDate = new Date(newRelationship.startdatum)
         const endDate = new Date(newRelationship.enddatum)
 
-        // Check for conflicts with existing Mieter relationships
+        // Check for conflicts with existing Mieter relationships in the form
         const conflicts = existingRelationships.filter(rel =>
             rel.art === 'Mieter' &&
             rel.id !== newRelationship.id &&
@@ -85,7 +85,46 @@ export class RelationshipValidator {
         if (conflicts) {
             this.errors.push({
                 field: 'general',
-                message: 'Es besteht bereits eine Mieter-Beziehung für denselben Zeitraum.'
+                message: 'Mieter ist in diesem Zeitraum schon zur Miete'
+            })
+            return false
+        }
+
+        return true
+    }
+
+    // Validate Mieter conflicts against database relationships
+    validateMieterConflictsInDatabase(
+        newRelationship: Relationship,
+        databaseRelationships: Relationship[],
+        relationshipType: 'immobilien' | 'kontakte'
+    ): boolean {
+        if (newRelationship.art !== 'Mieter' || !newRelationship.startdatum || !newRelationship.enddatum) {
+            return true
+        }
+
+        const startDate = new Date(newRelationship.startdatum)
+        const endDate = new Date(newRelationship.enddatum)
+
+        // Check for conflicts with existing Mieter relationships in the database
+        const conflicts = databaseRelationships.filter(rel =>
+            rel.art === 'Mieter' &&
+            rel.id !== newRelationship.id &&
+            ((relationshipType === 'immobilien' && rel.immobilien_id === newRelationship.immobilien_id) ||
+                (relationshipType === 'kontakte' && rel.kontakt_id === newRelationship.kontakt_id))
+        ).some(rel => {
+            if (!rel.startdatum || !rel.enddatum) return false
+            const relStart = new Date(rel.startdatum)
+            const relEnd = new Date(rel.enddatum)
+
+            // Check for date overlap
+            return (startDate <= relEnd && endDate >= relStart)
+        })
+
+        if (conflicts) {
+            this.errors.push({
+                field: 'general',
+                message: 'Mieter ist in diesem Zeitraum schon zur Miete'
             })
             return false
         }
@@ -121,7 +160,7 @@ export class RelationshipValidator {
         const validations = [
             () => this.validateRequiredFields(relationship),
             () => this.validateDienstleisterServices(relationship),
-            () => this.validateMieterConflicts(relationship, existingRelationships, relationshipType),
+            () => this.validateMieterConflictsInForm(relationship, existingRelationships, relationshipType),
             () => this.validateDateLogic(relationship)
         ]
 

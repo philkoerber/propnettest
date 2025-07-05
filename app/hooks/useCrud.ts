@@ -38,7 +38,9 @@ export function useCrud(endpoint: string): UseCrudReturn {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+                // Use detailed error message if available, otherwise fall back to generic error
+                const errorMessage = errorData.details || errorData.error || `HTTP error! status: ${response.status}`
+                throw new Error(errorMessage)
             }
 
             const result = await response.json()

@@ -39,6 +39,43 @@ const sanitizeDateField = (value: unknown) => {
     return value === '' || value === null || value === undefined ? null : value
 }
 
+// Helper function to validate Mieter conflicts
+const validateMieterConflicts = async (relationships: Record<string, unknown>[], table: string, entityId: string): Promise<string | null> => {
+    for (const rel of relationships) {
+        if (rel.art === 'Mieter' && rel.startdatum && rel.enddatum) {
+            const startDate = new Date(rel.startdatum as string)
+            const endDate = new Date(rel.enddatum as string)
+
+            // Fetch existing Mieter relationships
+            const { data: existingRelationships, error } = await supabase
+                .from('beziehungen')
+                .select('*')
+                .eq('art', 'Mieter')
+                .eq(table === 'immobilien' ? 'immobilien_id' : 'kontakt_id', entityId)
+
+            if (error) {
+                console.error('Error fetching existing relationships:', error)
+                continue
+            }
+
+            // Check for conflicts
+            const hasConflict = existingRelationships?.some(existingRel => {
+                if (!existingRel.startdatum || !existingRel.enddatum) return false
+                const existingStart = new Date(existingRel.startdatum)
+                const existingEnd = new Date(existingRel.enddatum)
+
+                return (startDate <= existingEnd && endDate >= existingStart)
+            })
+
+            if (hasConflict) {
+                return 'Mieter ist in diesem Zeitraum schon zur Miete'
+            }
+        }
+    }
+
+    return null
+}
+
 // Helper function to create relationship data for updates
 const createRelationshipDataForUpdate = (relationships: Record<string, unknown>[], table: string, entityId: string) => {
     return relationships.map((rel: Record<string, unknown>) => {
@@ -281,6 +318,20 @@ export async function PATCH(
 
         // Handle relationships if provided
         if (relationships !== undefined) {
+            // Validate Mieter conflicts before updating relationships
+            if (Array.isArray(relationships) && relationships.length > 0) {
+                const mieterConflicts = await validateMieterConflicts(relationships, table, id)
+                if (mieterConflicts) {
+                    return NextResponse.json(
+                        {
+                            error: 'Mieter ist in diesem Zeitraum schon zur Miete',
+                            details: mieterConflicts
+                        },
+                        { status: 400 }
+                    )
+                }
+            }
+
             // Delete existing relationships for this entity
             const deleteCondition = table === 'immobilien'
                 ? { immobilien_id: id }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Relationship, RelationshipValidator } from '../../lib/relationshipValidation'
 import { RELATIONSHIP_TYPES } from '../../lib/columnDefinitions'
+import { useNotifications } from '../hooks/useNotifications'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
 
@@ -27,6 +28,7 @@ export default function RelationshipForm({
     })
     const [errors, setErrors] = useState<Record<string, string>>({})
     const validator = new RelationshipValidator()
+    const { showError } = useNotifications()
 
     const handleFieldChange = (field: string, value: string) => {
         setRelationship(prev => ({
@@ -49,6 +51,13 @@ export default function RelationshipForm({
 
         if (!validationResult.isValid) {
             setErrors(validator.getErrorsByField())
+
+            // Show general errors as notifications
+            const generalError = validationResult.errors.find(error => error.field === 'general')
+            if (generalError) {
+                showError(generalError.message)
+            }
+
             return
         }
 

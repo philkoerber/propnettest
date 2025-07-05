@@ -147,6 +147,43 @@ const filterVirtualFields = (entityData: Record<string, unknown>) => {
     return filteredEntityData
 }
 
+// Helper function to validate Mieter conflicts
+const validateMieterConflicts = async (relationships: Record<string, unknown>[], table: string, entityId: string): Promise<string | null> => {
+    for (const rel of relationships) {
+        if (rel.art === 'Mieter' && rel.startdatum && rel.enddatum) {
+            const startDate = new Date(rel.startdatum as string)
+            const endDate = new Date(rel.enddatum as string)
+
+            // Fetch existing Mieter relationships
+            const { data: existingRelationships, error } = await supabase
+                .from('beziehungen')
+                .select('*')
+                .eq('art', 'Mieter')
+                .eq(table === 'immobilien' ? 'immobilien_id' : 'kontakt_id', entityId)
+
+            if (error) {
+                console.error('Error fetching existing relationships:', error)
+                continue
+            }
+
+            // Check for conflicts
+            const hasConflict = existingRelationships?.some(existingRel => {
+                if (!existingRel.startdatum || !existingRel.enddatum) return false
+                const existingStart = new Date(existingRel.startdatum)
+                const existingEnd = new Date(existingRel.enddatum)
+
+                return (startDate <= existingEnd && endDate >= existingStart)
+            })
+
+            if (hasConflict) {
+                return 'Mieter ist in diesem Zeitraum schon zur Miete'
+            }
+        }
+    }
+
+    return null
+}
+
 // Helper function to create relationship data
 const createRelationshipData = (relationships: Record<string, unknown>[], table: string, entityId: string) => {
     return relationships.map((rel: Record<string, unknown>) => {
@@ -245,6 +282,18 @@ export async function POST(
 
         // Create relationships if provided
         if (relationships && Array.isArray(relationships) && relationships.length > 0) {
+            // Validate Mieter conflicts before creating relationships
+            const mieterConflicts = await validateMieterConflicts(relationships, table, entity.id)
+            if (mieterConflicts) {
+                return NextResponse.json(
+                    {
+                        error: 'Mieter ist in diesem Zeitraum schon zur Miete',
+                        details: mieterConflicts
+                    },
+                    { status: 400 }
+                )
+            }
+
             const relationshipData = createRelationshipData(relationships, table, entity.id)
 
             const { error: relationshipsError } = await supabase

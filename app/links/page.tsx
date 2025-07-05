@@ -3,30 +3,17 @@
 import { useState } from 'react'
 import { useApiData } from '../hooks/useApiData'
 import { useDeleteEntry } from '../hooks/useDeleteEntry'
-import DataTable from '../components/DataTable'
+import NetworkChart from '../components/NetworkChart'
+import NetworkLegend from '../components/NetworkLegend'
 import EntryButton from '../components/EntryButton'
 import EntryModal from '../components/EntryModal'
 import { beziehungenColumns } from '../../lib/columnDefinitions'
 
 export default function LinksPage() {
     const { data, loading, error, refetch } = useApiData('beziehungen')
-    const { deleteEntry } = useDeleteEntry('beziehungen')
     const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteEntry(id)
-            refetch() // Refresh the data after deletion
-        } catch (error) {
-            console.error('Error deleting beziehungen:', error)
-        }
-    }
-
-    const handleEdit = (rowData: Record<string, unknown>) => {
-        setEditData(rowData)
-        setIsEditModalOpen(true)
-    }
 
     const handleEditSuccess = () => {
         setIsEditModalOpen(false)
@@ -48,7 +35,7 @@ export default function LinksPage() {
             </div>
 
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">Beziehungen</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Network Chart</h2>
                 <EntryButton
                     endpoint="beziehungen"
                     onSuccess={handleAddSuccess}
@@ -58,17 +45,12 @@ export default function LinksPage() {
                 />
             </div>
 
-            <DataTable
-                data={data as Record<string, unknown>[]}
+            <NetworkLegend />
+
+            <NetworkChart
+                data={data as any[]}
                 loading={loading}
                 error={error}
-                columnDefs={beziehungenColumns}
-                onDelete={handleDelete}
-                onEdit={handleEdit}
-                onRowClick={(rowData) => {
-                    console.log('Selected relationship:', rowData)
-                    // Handle row click - could open edit modal, navigate to detail page, etc.
-                }}
             />
 
             {/* Edit Modal */}

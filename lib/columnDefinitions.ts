@@ -9,7 +9,12 @@ import {
     DateRenderer,
 } from './CellRenderers'
 
-// Form field type definition
+// Enhanced form field type definition with better type safety
+export interface ConditionalRule {
+    field: string
+    value: string
+}
+
 export interface FormField {
     name: string
     label: string
@@ -18,9 +23,12 @@ export interface FormField {
     options?: { value: string; label: string }[]
     placeholder?: string
     relationshipType?: 'immobilien' | 'kontakte' // For relationship fields
+    conditional?: ConditionalRule // For conditional fields
+    validation?: {
+        custom?: (value: unknown, formData: Record<string, unknown>) => string | null
+    }
 }
 
-// Extended column definition with form field metadata
 export interface ExtendedColDef extends ColDef {
     formField?: FormField
 }
@@ -43,6 +51,15 @@ const commonColumnConfig = {
     headerClass: 'ag-header-cell-custom',
     cellClass: 'ag-cell-custom'
 }
+
+// Relationship type options - centralized for consistency
+export const RELATIONSHIP_TYPES: { value: string; label: string }[] = [
+    { value: 'Eigentümer', label: 'Eigentümer' },
+    { value: 'Mieter', label: 'Mieter' },
+    { value: 'Dienstleister', label: 'Dienstleister' }
+]
+
+export type RelationshipType = 'Eigentümer' | 'Mieter' | 'Dienstleister'
 
 // Immobilien (Properties) column definitions
 export const immobilienColumns: ExtendedColDef[] = [
@@ -250,11 +267,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
             label: 'Art',
             type: 'select',
             required: true,
-            options: [
-                { value: 'Eigentümer', label: 'Eigentümer' },
-                { value: 'Mieter', label: 'Mieter' },
-                { value: 'Dienstleister', label: 'Dienstleister' }
-            ]
+            options: RELATIONSHIP_TYPES
         }
     },
     {
@@ -285,6 +298,24 @@ export const beziehungenColumns: ExtendedColDef[] = [
             label: 'Enddatum',
             type: 'date',
             required: false
+        }
+    },
+    {
+        field: 'dienstleistungen',
+        headerName: 'Dienstleistungen',
+        ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 200,
+        formField: {
+            name: 'dienstleistungen',
+            label: 'Angebotene Dienstleistungen',
+            type: 'textarea',
+            required: true,
+            placeholder: 'Beschreiben Sie die angebotenen Dienstleistungen...',
+            conditional: {
+                field: 'art',
+                value: 'Dienstleister'
+            }
         }
     },
     {

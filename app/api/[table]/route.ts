@@ -156,7 +156,8 @@ const createRelationshipData = (relationships: Record<string, unknown>[], table:
                 kontakt_id: rel.kontakt_id,
                 art: rel.art,
                 startdatum: rel.startdatum,
-                enddatum: rel.enddatum
+                enddatum: rel.enddatum,
+                dienstleistungen: rel.dienstleistungen
             }
         } else if (table === 'kontakte') {
             return {
@@ -164,7 +165,8 @@ const createRelationshipData = (relationships: Record<string, unknown>[], table:
                 kontakt_id: entityId,
                 art: rel.art,
                 startdatum: rel.startdatum,
-                enddatum: rel.enddatum
+                enddatum: rel.enddatum,
+                dienstleistungen: rel.dienstleistungen
             }
         }
         return rel

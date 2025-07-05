@@ -48,7 +48,8 @@ const createRelationshipDataForUpdate = (relationships: Record<string, unknown>[
                 kontakt_id: rel.kontakt_id,
                 art: rel.art,
                 startdatum: sanitizeDateField(rel.startdatum),
-                enddatum: sanitizeDateField(rel.enddatum)
+                enddatum: sanitizeDateField(rel.enddatum),
+                dienstleistungen: rel.dienstleistungen
             }
         } else if (table === 'kontakte') {
             return {
@@ -56,7 +57,8 @@ const createRelationshipDataForUpdate = (relationships: Record<string, unknown>[
                 kontakt_id: entityId,
                 art: rel.art,
                 startdatum: sanitizeDateField(rel.startdatum),
-                enddatum: sanitizeDateField(rel.enddatum)
+                enddatum: sanitizeDateField(rel.enddatum),
+                dienstleistungen: rel.dienstleistungen
             }
         }
         return rel
@@ -94,6 +96,7 @@ const fetchEntityWithRelationships = async (table: string, id: string) => {
                 art,
                 startdatum,
                 enddatum,
+                dienstleistungen,
                 immobilien:immobilien_id(titel),
                 kontakt:kontakt_id(name)
             `)
@@ -111,6 +114,7 @@ const fetchEntityWithRelationships = async (table: string, id: string) => {
             art: rel.art,
             startdatum: formatDateForInput(rel.startdatum as string | null),
             enddatum: formatDateForInput(rel.enddatum as string | null),
+            dienstleistungen: rel.dienstleistungen,
             immobilien_titel: (rel.immobilien as Record<string, unknown>)?.titel,
             kontakt_name: (rel.kontakt as Record<string, unknown>)?.name
         }))

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useCrud } from '../hooks/useCrud'
 import { useEntity } from '../hooks/useData'
 import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefinitions'
+import { shouldShowField } from '../../lib/relationshipValidation'
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
@@ -220,7 +221,7 @@ export default function EntryModal({
                         name={name}
                         onChange={handleInputChange}
                         relationshipType={relationshipType as 'immobilien' | 'kontakte'}
-                        currentRelationships={(formData[name] as Array<{ id?: string; immobilien_id?: string | number; kontakt_id?: string | number; art: string; startdatum?: string; enddatum?: string; immobilien_titel?: string; kontakt_name?: string }>) || []}
+                        currentRelationships={(formData[name] as any[]) || []}
                     />
                 )
             default:
@@ -280,15 +281,22 @@ export default function EntryModal({
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {fields.map((field) => (
-                                <div key={field.name}>
-                                    <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
-                                        {field.label}
-                                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </label>
-                                    {renderField(field)}
-                                </div>
-                            ))}
+                            {fields.map((field) => {
+                                // Check if field should be shown based on conditional logic
+                                if (!shouldShowField(field, formData)) {
+                                    return null // Don't render this field
+                                }
+
+                                return (
+                                    <div key={field.name}>
+                                        <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
+                                            {field.label}
+                                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                                        </label>
+                                        {renderField(field)}
+                                    </div>
+                                )
+                            })}
 
                             <div className="flex justify-end space-x-3 pt-4">
                                 <button

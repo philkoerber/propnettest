@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PropNet - Immobilienverwaltung
 
-## Getting Started
+## Über die App
 
-First, run the development server:
+PropNet ist eine Webanwendung zur Verwaltung von Immobilien und Kontakten. Die App wurde mit Next.js 15, TypeScript, Tailwind CSS und AG Grid entwickelt und bietet eine intuitive Benutzeroberfläche für die Verwaltung von Immobilienportfolios.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Hauptfunktionen
+
+- **Immobilienverwaltung**: Erstellen, bearbeiten und löschen von Immobilieneinträgen mit detaillierten Informationen wie Titel, Beschreibung und Adresse
+- **Kontaktverwaltung**: Verwaltung von Kontakten (Mieter, Eigentümer, Dienstleister) mit vollständigen Kontaktdaten
+- **Beziehungsverwaltung**: Verknüpfung von Immobilien mit Kontakten über ein Beziehungssystem
+- **Adressautomatisierung**: Integration von Google Maps API für automatische Adressvorschläge
+- **Datenvisualisierung**: Leistungsstarke Tabellen mit AG Grid für bessere Datenübersicht
+
+### Technologie-Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS 4
+- **UI-Komponenten**: Material-UI (MUI)
+- **Datenbank**: Supabase
+- **Tabellen**: AG Grid Community
+- **Karten**: Google Maps API
+- **Benachrichtigungen**: Notistack
+
+### Projektstruktur
+
+```
+app/
+├── components/          # React-Komponenten
+├── hooks/              # Custom React Hooks
+├── immobilien/         # Immobilien-Seite
+├── kontakt/            # Kontakte-Seite
+├── links/              # Beziehungen-Seite
+└── api/                # API-Routen
+
+lib/
+├── columnDefinitions.ts # Tabellen- und Formular-Definitionen
+├── CellRenderers.ts    # AG Grid Zellen-Renderer
+└── supabase.ts         # Supabase-Konfiguration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Noch zu tun
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+entferne "unknown" types
+integriere schemas in glabal type logic
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Entwicklung
 
-## Learn More
+```bash
+# Abhängigkeiten installieren
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# Entwicklungsserver starten
+npm run dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Build erstellen
+npm run build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Linting
+npm run lint
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Die App läuft standardmäßig auf `http://localhost:3000` und leitet automatisch zur Immobilien-Seite weiter.

@@ -1,29 +1,28 @@
 import { useState } from 'react'
 import { useNotifications } from './useNotifications'
 
-interface UseCreateEntryReturn {
-    createEntry: (data: any) => Promise<any>
+interface UseDeleteEntryReturn {
+    deleteEntry: (id: number) => Promise<void>
     loading: boolean
     error: string | null
     resetError: () => void
 }
 
-export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
+export function useDeleteEntry(endpoint: string): UseDeleteEntryReturn {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { showSuccess, showError } = useNotifications()
 
-    const createEntry = async (data: any) => {
+    const deleteEntry = async (id: number) => {
         try {
             setLoading(true)
             setError(null)
 
-            const response = await fetch(`/api/${endpoint}`, {
-                method: 'POST',
+            const response = await fetch(`/api/${endpoint}/${id}`, {
+                method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
+                }
             })
 
             if (!response.ok) {
@@ -31,9 +30,7 @@ export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
             }
 
-            const result = await response.json()
-            showSuccess('Eintrag erfolgreich erstellt!')
-            return result
+            showSuccess('Eintrag erfolgreich gelöscht!')
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Ups! Da ist etwas schief gelaufen.'
             setError(errorMessage)
@@ -49,7 +46,7 @@ export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
     }
 
     return {
-        createEntry,
+        deleteEntry,
         loading,
         error,
         resetError

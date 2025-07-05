@@ -1,12 +1,42 @@
 'use client'
 
+import { useState } from 'react'
 import { useApiData } from '../hooks/useApiData'
+import { useDeleteEntry } from '../hooks/useDeleteEntry'
 import DataTable from '../components/DataTable'
-import AddEntryButton from '../components/AddEntryButton'
+import EntryButton from '../components/EntryButton'
+import EntryModal from '../components/EntryModal'
 import { beziehungenColumns } from '../../lib/columnDefinitions'
 
 export default function LinksPage() {
     const { data, loading, error, refetch } = useApiData('beziehungen')
+    const { deleteEntry } = useDeleteEntry('beziehungen')
+    const [editData, setEditData] = useState<any>(null)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+    const handleDelete = async (id: number) => {
+        try {
+            await deleteEntry(id)
+            refetch() // Refresh the data after deletion
+        } catch (error) {
+            console.error('Error deleting beziehungen:', error)
+        }
+    }
+
+    const handleEdit = (rowData: any) => {
+        setEditData(rowData)
+        setIsEditModalOpen(true)
+    }
+
+    const handleEditSuccess = () => {
+        setIsEditModalOpen(false)
+        setEditData(null)
+        refetch() // Refresh the data after edit
+    }
+
+    const handleAddSuccess = () => {
+        refetch() // Refresh the data after adding
+    }
 
     return (
         <div className="space-y-6">
@@ -19,12 +49,12 @@ export default function LinksPage() {
 
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">Beziehungen</h2>
-                <AddEntryButton
+                <EntryButton
                     endpoint="beziehungen"
-                    title="Beziehung"
-                    onSuccess={refetch}
+                    onSuccess={handleAddSuccess}
                     columnDefs={beziehungenColumns}
                     buttonText="Neue Beziehung hinzufügen"
+                    modalTitle="Neue Beziehung hinzufügen"
                 />
             </div>
 
@@ -33,10 +63,24 @@ export default function LinksPage() {
                 loading={loading}
                 error={error}
                 columnDefs={beziehungenColumns}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
                 onRowClick={(rowData) => {
                     console.log('Selected relationship:', rowData)
                     // Handle row click - could open edit modal, navigate to detail page, etc.
                 }}
+            />
+
+            {/* Edit Modal */}
+            <EntryModal
+                endpoint="beziehungen"
+                modalTitle="Beziehung bearbeiten"
+                columnDefs={beziehungenColumns}
+                editMode={true}
+                editData={editData}
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                onEditSuccess={handleEditSuccess}
             />
         </div>
     );

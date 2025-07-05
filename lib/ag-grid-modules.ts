@@ -13,6 +13,7 @@ import {
     DateFilterModule,
     ColumnAutoSizeModule,
     RowSelectionModule,
+    RowStyleModule,
     CellStyleModule,
     PaginationModule,
 } from 'ag-grid-community'
@@ -24,6 +25,7 @@ ModuleRegistry.registerModules([
     NumberFilterModule,
     RowSelectionModule,
     CellStyleModule,
+    RowStyleModule,
     DateFilterModule,
     PaginationModule,
     ColumnAutoSizeModule,

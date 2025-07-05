@@ -1,25 +1,25 @@
 import { useState } from 'react'
 import { useNotifications } from './useNotifications'
 
-interface UseCreateEntryReturn {
-    createEntry: (data: any) => Promise<any>
+interface UseUpdateEntryReturn {
+    updateEntry: (id: number, data: any) => Promise<any>
     loading: boolean
     error: string | null
     resetError: () => void
 }
 
-export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
+export function useUpdateEntry(endpoint: string): UseUpdateEntryReturn {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { showSuccess, showError } = useNotifications()
 
-    const createEntry = async (data: any) => {
+    const updateEntry = async (id: number, data: any) => {
         try {
             setLoading(true)
             setError(null)
 
-            const response = await fetch(`/api/${endpoint}`, {
-                method: 'POST',
+            const response = await fetch(`/api/${endpoint}/${id}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -32,7 +32,7 @@ export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
             }
 
             const result = await response.json()
-            showSuccess('Eintrag erfolgreich erstellt!')
+            showSuccess('Eintrag erfolgreich bearbeitet!')
             return result
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Ups! Da ist etwas schief gelaufen.'
@@ -49,7 +49,7 @@ export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
     }
 
     return {
-        createEntry,
+        updateEntry,
         loading,
         error,
         resetError

@@ -79,6 +79,19 @@ export async function PATCH(
             )
         }
 
+        // Extract relationships from the request body if they exist
+        const { relationships, ...entityData } = body
+
+        // Filter out virtual fields that don't exist in the database
+        const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
+        const filteredEntityData: Record<string, unknown> = {}
+
+        Object.keys(entityData).forEach(key => {
+            if (!virtualFields.includes(key)) {
+                filteredEntityData[key] = entityData[key]
+            }
+        })
+
         // Get the current entry to compare with new data
         const { data: currentData, error: fetchError } = await supabase
             .from(table)
@@ -105,34 +118,106 @@ export async function PATCH(
 
         // Only include fields that have actually changed
         const changedFields: Record<string, unknown> = {}
-        Object.keys(body).forEach(key => {
-            if (body[key] !== currentData[key]) {
-                changedFields[key] = body[key]
+        Object.keys(filteredEntityData).forEach(key => {
+            if (filteredEntityData[key] !== currentData[key]) {
+                changedFields[key] = filteredEntityData[key]
             }
         })
 
-        // If no fields have changed, return the current data
-        if (Object.keys(changedFields).length === 0) {
-            return NextResponse.json(currentData)
+        let updatedEntity = currentData
+
+        // Update the entity if there are changes
+        if (Object.keys(changedFields).length > 0) {
+            const { data, error } = await supabase
+                .from(table)
+                .update(changedFields)
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) {
+                console.error(`Error updating ${table}:`, error)
+                const errorMessages = getTableErrorMessages(table)
+                return NextResponse.json(
+                    { error: errorMessages.update },
+                    { status: 500 }
+                )
+            }
+
+            updatedEntity = data
         }
 
-        // Update only the changed fields
-        const { data, error } = await supabase
-            .from(table)
-            .update(changedFields)
-            .eq('id', id)
-            .select()
+        // Handle relationships if provided
+        if (relationships !== undefined) {
+            // Delete existing relationships for this entity
+            const deleteCondition = table === 'immobilien'
+                ? { immobilien_id: id }
+                : { kontakt_id: id }
 
-        if (error) {
-            console.error(`Error updating ${table}:`, error)
-            const errorMessages = getTableErrorMessages(table)
-            return NextResponse.json(
-                { error: errorMessages.update },
-                { status: 500 }
-            )
+            const { error: deleteError } = await supabase
+                .from('beziehungen')
+                .delete()
+                .match(deleteCondition)
+
+            if (deleteError) {
+                console.error('Error deleting existing relationships:', deleteError)
+                return NextResponse.json(
+                    {
+                        error: 'Entity updated but relationships failed to update',
+                        entity: updatedEntity,
+                        relationshipError: deleteError.message
+                    },
+                    { status: 207 }
+                )
+            }
+
+            // Create new relationships if provided
+            if (Array.isArray(relationships) && relationships.length > 0) {
+                const relationshipData = relationships.map((rel: any) => {
+                    // Helper function to convert empty strings to null for date fields
+                    const sanitizeDateField = (value: any) => {
+                        return value === '' || value === null || value === undefined ? null : value
+                    }
+
+                    if (table === 'immobilien') {
+                        return {
+                            immobilien_id: id,
+                            kontakt_id: rel.kontakt_id,
+                            art: rel.art,
+                            startdatum: sanitizeDateField(rel.startdatum),
+                            enddatum: sanitizeDateField(rel.enddatum)
+                        }
+                    } else if (table === 'kontakte') {
+                        return {
+                            immobilien_id: rel.immobilien_id,
+                            kontakt_id: id,
+                            art: rel.art,
+                            startdatum: sanitizeDateField(rel.startdatum),
+                            enddatum: sanitizeDateField(rel.enddatum)
+                        }
+                    }
+                    return rel
+                })
+
+                const { error: relationshipsError } = await supabase
+                    .from('beziehungen')
+                    .insert(relationshipData)
+
+                if (relationshipsError) {
+                    console.error('Error creating new relationships:', relationshipsError)
+                    return NextResponse.json(
+                        {
+                            error: 'Entity updated but new relationships failed to create',
+                            entity: updatedEntity,
+                            relationshipError: relationshipsError.message
+                        },
+                        { status: 207 }
+                    )
+                }
+            }
         }
 
-        return NextResponse.json(data[0])
+        return NextResponse.json(updatedEntity)
     } catch (error) {
         console.error('Unexpected error:', error)
         return NextResponse.json(

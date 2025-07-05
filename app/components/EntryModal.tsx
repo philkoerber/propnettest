@@ -8,6 +8,7 @@ import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
 import RelationshipManager from './RelationshipManager'
+import { supabase } from '../../lib/supabase'
 
 interface EntryModalProps {
     endpoint: string
@@ -19,6 +20,17 @@ interface EntryModalProps {
     onClose: () => void
     onSuccess?: () => void
     onEditSuccess?: () => void
+}
+
+interface Relationship {
+    id?: string
+    immobilien_id?: string | number
+    kontakt_id?: string | number
+    art: string
+    startdatum?: string
+    enddatum?: string
+    immobilien_titel?: string
+    kontakt_name?: string
 }
 
 export default function EntryModal({
@@ -46,24 +58,116 @@ export default function EntryModal({
     // Extract form fields from column definitions
     const fields = getFormFields(columnDefs)
 
+    // Function to fetch relationships for editing
+    const fetchRelationshipsForEdit = async (entityId: string, entityType: string): Promise<Relationship[]> => {
+        try {
+            const { data: relationshipsData, error } = await supabase
+                .from('beziehungen')
+                .select(`
+                    id,
+                    immobilien_id,
+                    kontakt_id,
+                    art,
+                    startdatum,
+                    enddatum,
+                    immobilien:immobilien_id(titel),
+                    kontakt:kontakt_id(name)
+                `)
+                .eq(entityType === 'immobilien' ? 'immobilien_id' : 'kontakt_id', entityId)
+
+            if (error) {
+                console.error('Error fetching relationships:', error)
+                return []
+            }
+
+            return (relationshipsData || []).map((rel: any) => ({
+                id: rel.id,
+                immobilien_id: rel.immobilien_id,
+                kontakt_id: rel.kontakt_id,
+                art: rel.art,
+                startdatum: rel.startdatum,
+                enddatum: rel.enddatum,
+                immobilien_titel: rel.immobilien?.titel,
+                kontakt_name: rel.kontakt?.name
+            }))
+        } catch (error) {
+            console.error('Error fetching relationships:', error)
+            return []
+        }
+    }
+
     // Initialize form data when edit mode is enabled
     useEffect(() => {
-        if (editMode && editData) {
-            setFormData(editData)
-        } else {
-            setFormData({})
+        const initializeFormData = async () => {
+            if (editMode && editData) {
+                // Start with the basic edit data
+                let initialFormData = { ...editData }
+
+                // If this is an immobilien or kontakt entity, fetch the relationships
+                if (endpoint === 'immobilien' || endpoint === 'kontakte') {
+                    const relationships = await fetchRelationshipsForEdit(editData.id as string, endpoint)
+                    initialFormData.relationships = relationships
+                }
+
+                setFormData(initialFormData)
+            } else {
+                setFormData({})
+            }
         }
-    }, [editMode, editData, isOpen])
+
+        if (isOpen) {
+            initializeFormData()
+        }
+    }, [editMode, editData, isOpen, endpoint])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         try {
+            // Extract relationships from form data and structure the request
+            const { relationships, ...entityData } = formData
+
+            // Filter out virtual fields that don't exist in the database
+            const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
+            const filteredEntityData: Record<string, unknown> = {}
+
+            Object.keys(entityData).forEach(key => {
+                if (!virtualFields.includes(key) && entityData[key] !== undefined && entityData[key] !== null && entityData[key] !== '') {
+                    filteredEntityData[key] = entityData[key]
+                }
+            })
+
+            // Structure the request data
+            const requestData: Record<string, unknown> = {
+                ...filteredEntityData
+            }
+
+            // Add relationships if they exist and are not empty
+            if (relationships && Array.isArray(relationships) && relationships.length > 0) {
+                // Clean up relationships data (remove temporary IDs and unnecessary fields)
+                const cleanedRelationships = relationships.map((rel: any) => {
+                    const { id, immobilien_titel, kontakt_name, ...cleanRel } = rel
+                    return cleanRel
+                }).filter((rel: any) => {
+                    // Only include relationships that have the required fields
+                    if (endpoint === 'immobilien') {
+                        return rel.kontakt_id && rel.art
+                    } else if (endpoint === 'kontakte') {
+                        return rel.immobilien_id && rel.art
+                    }
+                    return true
+                })
+
+                if (cleanedRelationships.length > 0) {
+                    requestData.relationships = cleanedRelationships
+                }
+            }
+
             if (editMode && editData) {
-                await updateEntry(editData.id as string, formData)
+                await updateEntry(editData.id as string, requestData)
                 onEditSuccess?.()
             } else {
-                await createEntry(formData)
+                await createEntry(requestData)
                 onSuccess?.()
             }
             onClose()

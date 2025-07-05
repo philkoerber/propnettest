@@ -182,13 +182,28 @@ export async function POST(
 
         const body = await request.json()
 
-        const { data, error } = await supabase
-            .from(table)
-            .insert(body)
-            .select()
+        // Extract relationships from the request body if they exist
+        const { relationships, ...entityData } = body
 
-        if (error) {
-            console.error(`Error creating ${table}:`, error)
+        // Filter out virtual fields that don't exist in the database
+        const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
+        const filteredEntityData: Record<string, unknown> = {}
+
+        Object.keys(entityData).forEach(key => {
+            if (!virtualFields.includes(key)) {
+                filteredEntityData[key] = entityData[key]
+            }
+        })
+
+        // Start a transaction
+        const { data: entity, error: entityError } = await supabase
+            .from(table)
+            .insert(filteredEntityData)
+            .select()
+            .single()
+
+        if (entityError) {
+            console.error(`Error creating ${table}:`, entityError)
             const errorMessages = getTableErrorMessages(table)
             return NextResponse.json(
                 { error: errorMessages.create },
@@ -196,7 +211,49 @@ export async function POST(
             )
         }
 
-        return NextResponse.json(data[0], { status: 201 })
+        // If relationships are provided, create them
+        if (relationships && Array.isArray(relationships) && relationships.length > 0) {
+            const relationshipData = relationships.map((rel: any) => {
+                if (table === 'immobilien') {
+                    return {
+                        immobilien_id: entity.id,
+                        kontakt_id: rel.kontakt_id,
+                        art: rel.art,
+                        startdatum: rel.startdatum,
+                        enddatum: rel.enddatum
+                    }
+                } else if (table === 'kontakte') {
+                    return {
+                        immobilien_id: rel.immobilien_id,
+                        kontakt_id: entity.id,
+                        art: rel.art,
+                        startdatum: rel.startdatum,
+                        enddatum: rel.enddatum
+                    }
+                }
+                return rel
+            })
+
+            const { error: relationshipsError } = await supabase
+                .from('beziehungen')
+                .insert(relationshipData)
+
+            if (relationshipsError) {
+                console.error('Error creating relationships:', relationshipsError)
+                // Note: We don't rollback the entity creation here as it might be useful
+                // In a production environment, you might want to implement proper transaction rollback
+                return NextResponse.json(
+                    {
+                        error: 'Entity created but relationships failed to create',
+                        entity,
+                        relationshipError: relationshipsError.message
+                    },
+                    { status: 207 } // 207 Multi-Status
+                )
+            }
+        }
+
+        return NextResponse.json(entity, { status: 201 })
     } catch (error) {
         console.error('Unexpected error:', error)
         return NextResponse.json(

@@ -1,43 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
 import { validateUUID } from '../../../../lib/uuidValidator'
-
-// Define allowed table names
-const ALLOWED_TABLES = ['kontakte', 'immobilien', 'beziehungen'] as const
-type AllowedTable = typeof ALLOWED_TABLES[number]
-
-// Helper function to validate table name
-function isValidTable(table: string): table is AllowedTable {
-    return ALLOWED_TABLES.includes(table as AllowedTable)
-}
-
-// Helper function to get table-specific error messages
-function getTableErrorMessages(table: AllowedTable) {
-    const messages = {
-        kontakte: {
-            fetch: 'Failed to fetch kontakte data',
-            create: 'Failed to create kontakte',
-            update: 'Failed to update kontakt',
-            delete: 'Failed to delete kontakte',
-            notFound: 'Kontakt not found'
-        },
-        immobilien: {
-            fetch: 'Failed to fetch immobilien data',
-            create: 'Failed to create immobilien',
-            update: 'Failed to update immobilien',
-            delete: 'Failed to delete immobilien',
-            notFound: 'Immobilien not found'
-        },
-        beziehungen: {
-            fetch: 'Failed to fetch beziehungen data',
-            create: 'Failed to create beziehungen',
-            update: 'Failed to update beziehung',
-            delete: 'Failed to delete beziehungen',
-            notFound: 'Beziehung not found'
-        }
-    }
-    return messages[table]
-}
+import {
+    isValidTable,
+    getTableErrorMessages,
+    COMMON_ERROR_MESSAGES
+} from '../../../../lib/errorMessages'
 
 export async function DELETE(
     request: Request,
@@ -48,7 +16,7 @@ export async function DELETE(
 
         if (!isValidTable(table)) {
             return NextResponse.json(
-                { error: 'Invalid table name' },
+                { error: COMMON_ERROR_MESSAGES.invalidTable },
                 { status: 400 }
             )
         }
@@ -57,7 +25,7 @@ export async function DELETE(
         const uuidValidation = validateUUID(id)
         if (!uuidValidation.isValid) {
             return NextResponse.json(
-                { error: uuidValidation.error },
+                { error: COMMON_ERROR_MESSAGES.invalidUUID },
                 { status: 400 }
             )
         }
@@ -80,7 +48,7 @@ export async function DELETE(
     } catch (error) {
         console.error('Unexpected error:', error)
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: COMMON_ERROR_MESSAGES.internalServerError },
             { status: 500 }
         )
     }
@@ -95,7 +63,7 @@ export async function PATCH(
 
         if (!isValidTable(table)) {
             return NextResponse.json(
-                { error: 'Invalid table name' },
+                { error: COMMON_ERROR_MESSAGES.invalidTable },
                 { status: 400 }
             )
         }
@@ -106,7 +74,7 @@ export async function PATCH(
         const uuidValidation = validateUUID(id)
         if (!uuidValidation.isValid) {
             return NextResponse.json(
-                { error: uuidValidation.error },
+                { error: COMMON_ERROR_MESSAGES.invalidUUID },
                 { status: 400 }
             )
         }
@@ -122,7 +90,7 @@ export async function PATCH(
             console.error(`Error fetching current ${table}:`, fetchError)
             const errorMessages = getTableErrorMessages(table)
             return NextResponse.json(
-                { error: `Failed to fetch current ${table} data` },
+                { error: errorMessages.fetchCurrent },
                 { status: 500 }
             )
         }
@@ -168,7 +136,7 @@ export async function PATCH(
     } catch (error) {
         console.error('Unexpected error:', error)
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: COMMON_ERROR_MESSAGES.internalServerError },
             { status: 500 }
         )
     }

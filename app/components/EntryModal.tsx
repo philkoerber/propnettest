@@ -5,6 +5,8 @@ import { useCreateEntry } from '../hooks/useCreateEntry'
 import { useUpdateEntry } from '../hooks/useUpdateEntry'
 import { ExtendedColDef, getFormFields } from '../../lib/columnDefinitions'
 import AddressAutocomplete from './AddressAutocomplete'
+import ImmobilienAutocomplete from './ImmobilienAutocomplete'
+import KontaktAutocomplete from './KontaktAutocomplete'
 
 interface EntryModalProps {
     endpoint: string
@@ -142,6 +144,26 @@ export default function EntryModal({
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Adresse suchen...'}
+                    />
+                )
+            case 'immobilie':
+                return (
+                    <ImmobilienAutocomplete
+                        name={name}
+                        value={formData[name] || ''}
+                        onChange={handleInputChange}
+                        required={required}
+                        placeholder={placeholder || 'Immobilie suchen...'}
+                    />
+                )
+            case 'kontakt':
+                return (
+                    <KontaktAutocomplete
+                        name={name}
+                        value={formData[name] || ''}
+                        onChange={handleInputChange}
+                        required={required}
+                        placeholder={placeholder || 'Kontakt suchen...'}
                     />
                 )
             default:

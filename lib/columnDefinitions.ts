@@ -4,7 +4,7 @@ import { ColDef, ICellRendererParams } from 'ag-grid-community'
 export interface FormField {
     name: string
     label: string
-    type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'address'
+    type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'address' | 'immobilie' | 'kontakt'
     required?: boolean
     options?: { value: string; label: string }[]
     placeholder?: string
@@ -177,10 +177,10 @@ export const beziehungenColumns: ExtendedColDef[] = [
         ...commonColumnConfig,
         formField: {
             name: 'immobilien_id',
-            label: 'Immobilien ID',
-            type: 'number',
+            label: 'Immobilie',
+            type: 'immobilie',
             required: true,
-            placeholder: 'ID der Immobilie'
+            placeholder: 'Immobilie suchen...'
         }
     },
     {
@@ -192,10 +192,10 @@ export const beziehungenColumns: ExtendedColDef[] = [
         ...commonColumnConfig,
         formField: {
             name: 'kontakt_id',
-            label: 'Kontakt ID',
-            type: 'number',
+            label: 'Kontakt',
+            type: 'kontakt',
             required: true,
-            placeholder: 'ID des Kontakts'
+            placeholder: 'Kontakt suchen...'
         }
     },
     {

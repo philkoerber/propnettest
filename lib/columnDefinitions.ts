@@ -1,4 +1,5 @@
 import { ColDef, ICellRendererParams } from 'ag-grid-community'
+import React from 'react'
 
 // Form field type definition
 export interface FormField {
@@ -27,6 +28,26 @@ const commonColumnConfig = {
     },
     headerClass: 'ag-header-cell-custom',
     cellClass: 'ag-cell-custom'
+}
+
+// Cell renderer components for beziehungen
+const ImmobilienSummaryRenderer = (props: ICellRendererParams) => {
+    return props.value || 'Unbekannte Immobilie'
+}
+
+const KontaktSummaryRenderer = (props: ICellRendererParams) => {
+    return props.value || 'Unbekannter Kontakt'
+}
+
+const ArtRenderer = (props: ICellRendererParams) => {
+    const art = props.value
+    // const artColors: { [key: string]: string } = {
+    //     'Eigentümer': 'bg-green-100 text-green-800',
+    //     'Mieter': 'bg-blue-100 text-blue-800',
+    //     'Dienstleister': 'bg-orange-100 text-orange-800'
+    // }
+
+    return art
 }
 
 // Immobilien (Properties) column definitions
@@ -169,12 +190,12 @@ export const kontakteColumns: ExtendedColDef[] = [
 // Beziehungen (Relationships) column definitions
 export const beziehungenColumns: ExtendedColDef[] = [
     {
-        field: 'immobilien_id',
-        headerName: 'Immobilien ID',
-        type: 'numericColumn',
-        filter: 'numberFilter',
-        width: 100,
+        field: 'immobilien_summary',
+        headerName: 'Immobilie',
         ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 250,
+        cellRenderer: ImmobilienSummaryRenderer,
         formField: {
             name: 'immobilien_id',
             label: 'Immobilie',
@@ -184,12 +205,12 @@ export const beziehungenColumns: ExtendedColDef[] = [
         }
     },
     {
-        field: 'kontakt_id',
-        headerName: 'Kontakt ID',
-        type: 'numericColumn',
-        filter: 'numberFilter',
-        width: 100,
+        field: 'kontakt_summary',
+        headerName: 'Kontakt',
         ...commonColumnConfig,
+        filter: 'textFilter',
+        width: 250,
+        cellRenderer: KontaktSummaryRenderer,
         formField: {
             name: 'kontakt_id',
             label: 'Kontakt',
@@ -200,22 +221,13 @@ export const beziehungenColumns: ExtendedColDef[] = [
     },
     {
         field: 'art',
-        headerName: 'Art der Beziehung',
+        headerName: 'Art',
         ...commonColumnConfig,
         filter: 'textFilter',
-        cellRenderer: (params: ICellRendererParams) => {
-            const art = params.value
-            const artColors: { [key: string]: string } = {
-                'Eigentümer': 'bg-green-100 text-green-800',
-                'Mieter': 'bg-blue-100 text-blue-800',
-                'Dienstleister': 'bg-orange-100 text-orange-800'
-            }
-            const colorClass = artColors[art] || 'bg-gray-100 text-gray-800'
-            return art
-        },
+        cellRenderer: ArtRenderer,
         formField: {
             name: 'art',
-            label: 'Art der Beziehung',
+            label: 'Art',
             type: 'select',
             required: true,
             options: [

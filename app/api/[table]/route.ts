@@ -20,10 +20,44 @@ export async function GET(
             )
         }
 
-        const { data, error } = await supabase
-            .from(table)
-            .select('*')
-            .order('created_at', { ascending: false })
+        let data, error
+
+        // Special handling for beziehungen to include joined data
+        if (table === 'beziehungen') {
+            const { data: beziehungenData, error: beziehungenError } = await supabase
+                .from(table)
+                .select(`
+                    *,
+                    immobilien:immobilien_id(titel, adresse, beschreibung),
+                    kontakt:kontakt_id(name, adresse)
+                `)
+                .order('created_at', { ascending: false })
+
+            if (beziehungenError) {
+                console.error(`Error fetching ${table}:`, beziehungenError)
+                const errorMessages = getTableErrorMessages(table)
+                return NextResponse.json(
+                    { error: errorMessages.fetch },
+                    { status: 500 }
+                )
+            }
+
+            // Transform the data to include summary fields
+            data = beziehungenData?.map(item => ({
+                ...item,
+                immobilien_summary: item.immobilien ? `${item.immobilien.titel} - ${item.immobilien.adresse}` : 'Unbekannte Immobilie',
+                kontakt_summary: item.kontakt ? `${item.kontakt.name} - ${item.kontakt.adresse}` : 'Unbekannter Kontakt'
+            })) || []
+        } else {
+            // Standard handling for other tables
+            const result = await supabase
+                .from(table)
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            data = result.data
+            error = result.error
+        }
 
         if (error) {
             console.error(`Error fetching ${table}:`, error)

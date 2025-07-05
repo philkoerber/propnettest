@@ -70,7 +70,7 @@ export async function PATCH(
 
         const body = await request.json()
 
-        // Validate UUID format
+        // Validate UUID format (passt das format)
         const uuidValidation = validateUUID(id)
         if (!uuidValidation.isValid) {
             return NextResponse.json(

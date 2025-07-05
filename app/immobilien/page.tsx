@@ -49,7 +49,6 @@ export default function ImmobilienPage() {
             </div>
 
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">Immobilien</h2>
                 <EntryButton
                     endpoint="immobilien"
                     onSuccess={handleAddSuccess}

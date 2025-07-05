@@ -6,7 +6,6 @@ interface Kontakt {
     id: number
     name: string
     adresse: string
-    bild?: string
 }
 
 interface KontaktAutocompleteProps {
@@ -157,11 +156,6 @@ export default function KontaktAutocomplete({
                             <div className="text-sm text-gray-600">
                                 ID: {kontakt.id} • {kontakt.adresse}
                             </div>
-                            {kontakt.bild && (
-                                <div className="text-xs text-gray-500">
-                                    Bild verfügbar
-                                </div>
-                            )}
                         </div>
                     ))}
                 </div>

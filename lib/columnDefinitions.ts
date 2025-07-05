@@ -1,5 +1,13 @@
-import { ColDef, ICellRendererParams } from 'ag-grid-community'
-import React from 'react'
+import { ColDef } from 'ag-grid-community'
+import {
+    AddressRenderer,
+    ImmobilienSummaryRenderer,
+    KontaktSummaryRenderer,
+    ArtRenderer,
+    AssociatedImmobilienRenderer,
+    AssociatedKontakteRenderer,
+    DateRenderer,
+} from './CellRenderers'
 
 // Form field type definition
 export interface FormField {
@@ -20,54 +28,19 @@ export interface ExtendedColDef extends ColDef {
 const commonColumnConfig = {
     sortable: true,
     resizable: true,
-    minWidth: 120,
+    minWidth: 150,
     flex: 1,
     cellStyle: {
         padding: '8px',
-        borderBottom: '1px solid #e5e7eb'
+        borderBottom: '1px solid #e5e7eb',
+        display: 'flex',
+        alignItems: 'flex-start',
+        height: '100%',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word'
     },
     headerClass: 'ag-header-cell-custom',
     cellClass: 'ag-cell-custom'
-}
-
-// Cell renderer components for beziehungen
-const ImmobilienSummaryRenderer = (props: ICellRendererParams) => {
-    return props.value || 'Unbekannte Immobilie'
-}
-
-const KontaktSummaryRenderer = (props: ICellRendererParams) => {
-    return props.value || 'Unbekannter Kontakt'
-}
-
-const ArtRenderer = (props: ICellRendererParams) => {
-    const art = props.value
-    // const artColors: { [key: string]: string } = {
-    //     'Eigentümer': 'bg-green-100 text-green-800',
-    //     'Mieter': 'bg-blue-100 text-blue-800',
-    //     'Dienstleister': 'bg-orange-100 text-orange-800'
-    // }
-
-    return art
-}
-
-// Cell renderer for associated immobilien
-const AssociatedImmobilienRenderer = (props: ICellRendererParams) => {
-    if (!props.value || props.value.length === 0) {
-        return '-'
-    }
-
-    return props.value.map((item: any, index: number) =>
-        `${item.art} @ ${item.immobilien_titel}`
-    ).join(', ')
-}
-
-// Cell renderer for associated kontakte
-const AssociatedKontakteRenderer = (props: ICellRendererParams) => {
-    if (!props.value || props.value.length === 0) {
-        return '-'
-    }
-
-    return props.value.map((kontakt: any) => kontakt.name).join(', ')
 }
 
 // Immobilien (Properties) column definitions
@@ -77,6 +50,7 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Titel',
         ...commonColumnConfig,
         filter: 'textFilter',
+        width: 200,
         formField: {
             name: 'titel',
             label: 'Titel',
@@ -90,7 +64,13 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Beschreibung',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 200,
+        width: 250,
+        cellStyle: {
+            ...commonColumnConfig.cellStyle,
+            maxHeight: '80px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+        },
         formField: {
             name: 'beschreibung',
             label: 'Beschreibung',
@@ -103,7 +83,8 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Adresse',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 180,
+        width: 250,
+        cellRenderer: AddressRenderer,
         formField: {
             name: 'adresse',
             label: 'Adresse',
@@ -116,7 +97,7 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Mieter',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 150,
+        width: 200,
         cellRenderer: AssociatedKontakteRenderer
     },
     {
@@ -124,7 +105,7 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Eigentümer',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 150,
+        width: 200,
         cellRenderer: AssociatedKontakteRenderer
     },
     {
@@ -132,26 +113,8 @@ export const immobilienColumns: ExtendedColDef[] = [
         headerName: 'Dienstleister',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 150,
+        width: 200,
         cellRenderer: AssociatedKontakteRenderer
-    },
-    {
-        field: 'bild',
-        headerName: 'Bild',
-        ...commonColumnConfig,
-        filter: 'textFilter',
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return `<a href="${params.value}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">Bild anzeigen</a>`
-            }
-            return ''
-        },
-        formField: {
-            name: 'bild',
-            label: 'Bild URL',
-            type: 'text',
-            placeholder: 'https://example.com/bild.jpg'
-        }
     },
     {
         field: 'created_at',
@@ -160,12 +123,7 @@ export const immobilienColumns: ExtendedColDef[] = [
         filter: 'dateFilter',
         width: 120,
         ...commonColumnConfig,
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return new Date(params.value).toLocaleDateString('de-DE')
-            }
-            return ''
-        }
+        cellRenderer: DateRenderer
     }
 ]
 
@@ -176,6 +134,7 @@ export const kontakteColumns: ExtendedColDef[] = [
         headerName: 'Name',
         ...commonColumnConfig,
         filter: 'textFilter',
+        width: 180,
         formField: {
             name: 'name',
             label: 'Name',
@@ -189,7 +148,8 @@ export const kontakteColumns: ExtendedColDef[] = [
         headerName: 'Adresse',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 180,
+        width: 300,
+        cellRenderer: AddressRenderer,
         formField: {
             name: 'adresse',
             label: 'Adresse',
@@ -202,28 +162,10 @@ export const kontakteColumns: ExtendedColDef[] = [
         headerName: 'Verknüpfte Immobilien',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 250,
+        width: 500,
         cellRenderer: AssociatedImmobilienRenderer,
         cellRendererParams: {
             suppressCount: true
-        }
-    },
-    {
-        field: 'bild',
-        headerName: 'Bild',
-        ...commonColumnConfig,
-        filter: 'textFilter',
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return `<a href="${params.value}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">Bild anzeigen</a>`
-            }
-            return ''
-        },
-        formField: {
-            name: 'bild',
-            label: 'Bild URL',
-            type: 'text',
-            placeholder: 'https://example.com/bild.jpg'
         }
     },
     {
@@ -233,12 +175,7 @@ export const kontakteColumns: ExtendedColDef[] = [
         filter: 'dateFilter',
         width: 120,
         ...commonColumnConfig,
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return new Date(params.value).toLocaleDateString('de-DE')
-            }
-            return ''
-        }
+        cellRenderer: DateRenderer
     }
 ]
 
@@ -249,7 +186,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         headerName: 'Immobilie',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 250,
+        width: 300,
         cellRenderer: ImmobilienSummaryRenderer,
         formField: {
             name: 'immobilien_id',
@@ -264,7 +201,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         headerName: 'Kontakt',
         ...commonColumnConfig,
         filter: 'textFilter',
-        width: 250,
+        width: 300,
         cellRenderer: KontaktSummaryRenderer,
         formField: {
             name: 'kontakt_id',
@@ -279,6 +216,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         headerName: 'Art',
         ...commonColumnConfig,
         filter: 'textFilter',
+        width: 150,
         cellRenderer: ArtRenderer,
         formField: {
             name: 'art',
@@ -299,12 +237,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         filter: 'dateFilter',
         width: 120,
         ...commonColumnConfig,
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return new Date(params.value).toLocaleDateString('de-DE')
-            }
-            return ''
-        },
+        cellRenderer: DateRenderer,
         formField: {
             name: 'startdatum',
             label: 'Startdatum',
@@ -319,12 +252,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         filter: 'dateFilter',
         width: 120,
         ...commonColumnConfig,
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return new Date(params.value).toLocaleDateString('de-DE')
-            }
-            return '-'
-        },
+        cellRenderer: DateRenderer,
         formField: {
             name: 'enddatum',
             label: 'Enddatum',
@@ -339,12 +267,7 @@ export const beziehungenColumns: ExtendedColDef[] = [
         filter: 'dateFilter',
         width: 120,
         ...commonColumnConfig,
-        cellRenderer: (params: ICellRendererParams) => {
-            if (params.value) {
-                return new Date(params.value).toLocaleDateString('de-DE')
-            }
-            return ''
-        }
+        cellRenderer: DateRenderer
     }
 ]
 

@@ -3,6 +3,7 @@
 import { AgGridReact } from 'ag-grid-react'
 import { ColDef, GridOptions, ICellRendererParams } from 'ag-grid-community'
 import { useMemo, useState, useEffect } from 'react'
+import SearchBar from './SearchBar'
 
 // Import AG Grid styles for legacy theme
 import 'ag-grid-community/styles/ag-grid.css'
@@ -73,30 +74,42 @@ interface DataTableProps {
     data: any[]
     loading?: boolean
     error?: string | null
-    title?: string
     onRowClick?: (rowData: any) => void
     onDelete?: (id: string) => Promise<void>
     onEdit?: (rowData: any) => void
     className?: string
     columnDefs?: ColDef[]
-    endpoint?: string
 }
 
 export default function DataTable({
     data,
     loading = false,
     error = null,
-    title,
     onRowClick,
     onDelete,
     onEdit,
     className = '',
     columnDefs: providedColumnDefs,
-    endpoint
 }: DataTableProps) {
     const [gridApi, setGridApi] = useState<any>(null)
     const [deletingRows, setDeletingRows] = useState<Set<string>>(new Set())
     const [editingRows, setEditingRows] = useState<Set<string>>(new Set())
+    const [searchTerm, setSearchTerm] = useState('')
+
+    // Filter data based on search term
+    const filteredData = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return data
+        }
+
+        const searchLower = searchTerm.toLowerCase()
+        return data.filter(row => {
+            return Object.values(row).some(value => {
+                if (value === null || value === undefined) return false
+                return String(value).toLowerCase().includes(searchLower)
+            })
+        })
+    }, [data, searchTerm])
 
     // Use provided column definitions or generate them dynamically
     const columnDefs = useMemo((): ColDef[] => {
@@ -124,14 +137,16 @@ export default function DataTable({
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 120,
+                    minWidth: 150,
                     flex: 1,
                     cellStyle: {
                         padding: '8px',
                         borderBottom: '1px solid #e5e7eb',
                         display: 'flex',
-                        alignItems: 'center',
-                        height: '100%'
+                        alignItems: 'flex-start',
+                        height: '100%',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
                     },
                     headerClass: 'ag-header-cell-custom',
                     cellClass: 'ag-cell-custom'
@@ -161,6 +176,7 @@ export default function DataTable({
                 } else {
                     // Default to text filter for string values
                     column.filter = 'textFilter'
+                    column.width = 200 // Default wider width for text columns
                 }
 
                 columns.push(column)
@@ -176,8 +192,17 @@ export default function DataTable({
                 sortable: false,
                 filter: false,
                 resizable: false,
+                pinned: 'right', // Pin to the right
                 cellRenderer: ActionsRenderer,
-                cellClass: 'ag-cell-actions'
+                cellClass: 'ag-cell-actions',
+                cellStyle: {
+                    padding: '8px',
+                    borderBottom: '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%'
+                }
             })
         }
 
@@ -223,7 +248,7 @@ export default function DataTable({
     // Grid options
     const gridOptions: GridOptions = useMemo(() => ({
         columnDefs,
-        rowData: data,
+        rowData: filteredData,
         pagination: true,
         paginationPageSize: 15,
         paginationPageSizeSelector: [10, 20, 50, 100],
@@ -235,12 +260,14 @@ export default function DataTable({
             sortable: true,
             filter: true,
             resizable: true,
-            minWidth: 100,
+            minWidth: 150,
             flex: 1,
             cellStyle: {
                 display: 'flex',
-                alignItems: 'center',
-                height: '100%'
+                alignItems: 'flex-start',
+                height: '100%',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
             }
         },
         context: {
@@ -261,16 +288,16 @@ export default function DataTable({
                 onRowClick(event.data)
             }
         }
-    }), [columnDefs, data, onRowClick, handleDelete, handleEdit, deletingRows, editingRows])
+    }), [columnDefs, filteredData, onRowClick, handleDelete, handleEdit, deletingRows, editingRows])
 
     // Auto-resize columns when data changes
     useEffect(() => {
-        if (gridApi && data.length > 0) {
+        if (gridApi && filteredData.length > 0) {
             setTimeout(() => {
                 gridApi.sizeColumnsToFit()
             }, 100)
         }
-    }, [gridApi, data])
+    }, [gridApi, filteredData])
 
     if (loading) {
         return (
@@ -295,18 +322,20 @@ export default function DataTable({
     if (!data || data.length === 0) {
         return (
             <div className={`w-full ${className}`}>
-                {title && (
-                    <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-                    </div>
-                )}
+                <div className="mb-4">
+                    <SearchBar
+                        placeholder="Suchen..."
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                    />
+                </div>
 
                 <div
                     className="ag-theme-alpine w-full"
                     style={{
                         height: '600px',
                         '--ag-header-height': '50px',
-                        '--ag-row-height': '50px',
+                        '--ag-row-height': '120px',
                         '--ag-header-background-color': '#f8fafc',
                         '--ag-header-foreground-color': '#374151',
                         '--ag-border-color': '#e5e7eb',
@@ -326,12 +355,14 @@ export default function DataTable({
                             sortable: true,
                             filter: true,
                             resizable: true,
-                            minWidth: 100,
+                            minWidth: 150,
                             flex: 1,
                             cellStyle: {
                                 display: 'flex',
-                                alignItems: 'center',
-                                height: '100%'
+                                alignItems: 'flex-start',
+                                height: '100%',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word'
                             }
                         }}
                         context={{
@@ -361,18 +392,20 @@ export default function DataTable({
 
     return (
         <div className={`w-full ${className}`}>
-            {title && (
-                <div className="mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-                </div>
-            )}
+            <div className="mb-4">
+                <SearchBar
+                    placeholder="Suchen..."
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                />
+            </div>
 
             <div
                 className="ag-theme-alpine w-full"
                 style={{
                     height: '600px',
                     '--ag-header-height': '50px',
-                    '--ag-row-height': '50px',
+                    '--ag-row-height': '100px',
                     '--ag-header-background-color': '#f8fafc',
                     '--ag-header-foreground-color': '#374151',
                     '--ag-border-color': '#e5e7eb',

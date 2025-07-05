@@ -25,3 +25,59 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* AG Grid custom styles */
+.ag-theme-alpine {
+  --ag-header-height: 50px;
+  --ag-row-height: 60px;
+  --ag-header-background-color: #f8fafc;
+  --ag-header-foreground-color: #374151;
+  --ag-border-color: #e5e7eb;
+  --ag-row-hover-color: #f3f4f6;
+  --ag-selected-row-background-color: #dbeafe;
+  --ag-font-size: 14px;
+  --ag-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom cell styles */
+.ag-cell-custom {
+  padding: 8px !important;
+  line-height: 1.4 !important;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: break-word !important;
+}
+
+.ag-cell-actions {
+  padding: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #f8fafc !important;
+}
+
+/* Ensure pinned column has proper styling */
+.ag-pinned-right {
+  background-color: #f8fafc !important;
+  border-left: 2px solid #e5e7eb !important;
+}
+
+/* Improve text readability in cells */
+.ag-cell {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Better spacing for multi-line content */
+.ag-cell-custom .text-sm {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+.ag-cell-custom .space-y-1 > div {
+  margin-bottom: 2px !important;
+}
+
+.ag-cell-custom .space-y-1 > div:last-child {
+  margin-bottom: 0 !important;
+}
+

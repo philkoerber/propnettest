@@ -77,38 +77,7 @@ export default function EntryModal({
         }
     }, [editMode, fetchedEntity])
 
-    const validateRelationshipsWithBackend = async (relationships: Record<string, unknown>[]): Promise<boolean> => {
-        if (!relationships || relationships.length === 0) return true
 
-        try {
-            const response = await fetch('/api/validate-relationships', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    relationships,
-                    entityType: endpoint as 'immobilien' | 'kontakte',
-                    entityId: editData?.id || 'new'
-                })
-            })
-
-            const result = await response.json()
-
-            if (!result.isValid) {
-                // Show validation errors as notifications
-                const errorMessage = result.errors?.join(', ') || 'Validierungsfehler bei Beziehungen'
-                showError(errorMessage)
-                return false
-            }
-
-            return true
-        } catch (error) {
-            console.error('Validation error:', error)
-            showError('Fehler bei der Backend-Validierung')
-            return false
-        }
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -140,11 +109,7 @@ export default function EntryModal({
                     return true
                 })
 
-                // Validate relationships with backend before saving
-                const isValid = await validateRelationshipsWithBackend(cleanedRelationships)
-                if (!isValid) {
-                    return
-                }
+
 
                 // Always include relationships field, even if empty array
                 requestData.relationships = cleanedRelationships

@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface UseApiDataReturn {
-    data: any[]
+    data: unknown[]
     loading: boolean
     error: string | null
     refetch: () => void
 }
 
 export function useApiData(endpoint: string): UseApiDataReturn {
-    const [data, setData] = useState<any[]>([])
+    const [data, setData] = useState<unknown[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true)
             setError(null)
@@ -31,11 +31,11 @@ export function useApiData(endpoint: string): UseApiDataReturn {
         } finally {
             setLoading(false)
         }
-    }
+    }, [endpoint])
 
     useEffect(() => {
         fetchData()
-    }, [endpoint])
+    }, [fetchData])
 
     return {
         data,

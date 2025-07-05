@@ -22,7 +22,7 @@ export default function AddressAutocomplete({
     className = '',
     disabled = false
 }: AddressAutocompleteProps) {
-    const handlePlaceSelected = (place: any) => {
+    const handlePlaceSelected = (place: google.maps.places.PlaceResult) => {
         // Extract the formatted address
         const address = place.formatted_address || ''
         onChange(name, address)

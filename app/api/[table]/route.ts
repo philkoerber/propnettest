@@ -66,7 +66,7 @@ export async function GET(
 
             // Get associated immobilien for each kontakt
             const kontakteWithImmobilien = await Promise.all(
-                kontakteData?.map(async (kontakt) => {
+                kontakteData?.map(async (kontakt: Record<string, unknown>) => {
                     const { data: beziehungenData } = await supabase
                         .from('beziehungen')
                         .select(`
@@ -75,10 +75,13 @@ export async function GET(
                         `)
                         .eq('kontakt_id', kontakt.id)
 
-                    const associatedImmobilien = beziehungenData?.map((beziehung: any) => ({
-                        art: beziehung.art,
-                        immobilien_titel: beziehung.immobilien?.titel || 'Unbekannte Immobilie'
-                    })) || []
+                    const associatedImmobilien = (beziehungenData as unknown[] | undefined)?.map((beziehung: unknown) => {
+                        const b = beziehung as { art?: string; immobilien?: { titel?: string } }
+                        return {
+                            art: b.art,
+                            immobilien_titel: b.immobilien?.titel || 'Unbekannte Immobilie'
+                        }
+                    }) || []
 
                     return {
                         ...kontakt,
@@ -106,7 +109,7 @@ export async function GET(
 
             // Get associated kontakte for each immobilien, grouped by relationship type
             const immobilienWithKontakte = await Promise.all(
-                immobilienData?.map(async (immobilie) => {
+                immobilienData?.map(async (immobilie: Record<string, unknown>) => {
                     const { data: beziehungenData } = await supabase
                         .from('beziehungen')
                         .select(`
@@ -116,12 +119,12 @@ export async function GET(
                         .eq('immobilien_id', immobilie.id)
 
                     // Group kontakte by relationship type
-                    const mieter = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Mieter')
-                        .map((beziehung: any) => beziehung.kontakt) || []
-                    const eigentümer = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Eigentümer')
-                        .map((beziehung: any) => beziehung.kontakt) || []
-                    const dienstleister = beziehungenData?.filter((beziehung: any) => beziehung.art === 'Dienstleister')
-                        .map((beziehung: any) => beziehung.kontakt) || []
+                    const mieter = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Mieter')
+                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
+                    const eigentümer = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Eigentümer')
+                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
+                    const dienstleister = (beziehungenData as unknown[] | undefined)?.filter((beziehung: unknown) => (beziehung as { art?: string }).art === 'Dienstleister')
+                        .map((beziehung: unknown) => (beziehung as { kontakt?: unknown }).kontakt) || []
 
                     return {
                         ...immobilie,

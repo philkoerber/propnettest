@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNotifications } from './useNotifications'
 
 interface UseUpdateEntryReturn {
-    updateEntry: (id: string, data: any) => Promise<any>
+    updateEntry: (id: string, data: Record<string, unknown>) => Promise<unknown>
     loading: boolean
     error: string | null
     resetError: () => void
@@ -13,7 +13,7 @@ export function useUpdateEntry(endpoint: string): UseUpdateEntryReturn {
     const [error, setError] = useState<string | null>(null)
     const { showSuccess, showError } = useNotifications()
 
-    const updateEntry = async (id: string, data: any) => {
+    const updateEntry = async (id: string, data: Record<string, unknown>) => {
         try {
             setLoading(true)
             setError(null)

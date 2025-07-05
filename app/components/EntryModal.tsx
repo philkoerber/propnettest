@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useCreateEntry } from '../hooks/useCreateEntry'
 import { useUpdateEntry } from '../hooks/useUpdateEntry'
-import { ExtendedColDef, getFormFields } from '../../lib/columnDefinitions'
+import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefinitions'
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
@@ -13,7 +13,7 @@ interface EntryModalProps {
     modalTitle: string
     columnDefs: ExtendedColDef[]
     editMode?: boolean
-    editData?: any
+    editData?: Record<string, unknown> | null
     isOpen: boolean
     onClose: () => void
     onSuccess?: () => void
@@ -31,7 +31,7 @@ export default function EntryModal({
     onSuccess,
     onEditSuccess
 }: EntryModalProps) {
-    const [formData, setFormData] = useState<Record<string, any>>({})
+    const [formData, setFormData] = useState<Record<string, unknown>>({})
     const { createEntry, loading: createLoading, error: createError, resetError: resetCreateError } = useCreateEntry(endpoint)
     const { updateEntry, loading: updateLoading, error: updateError, resetError: resetUpdateError } = useUpdateEntry(endpoint)
 
@@ -59,7 +59,7 @@ export default function EntryModal({
 
         try {
             if (editMode && editData) {
-                await updateEntry(editData.id, formData)
+                await updateEntry(editData.id as string, formData)
                 onEditSuccess?.()
             } else {
                 await createEntry(formData)
@@ -68,27 +68,27 @@ export default function EntryModal({
             onClose()
             setFormData({})
             resetError()
-        } catch (err) {
+        } catch {
             // Error is handled by the hook
         }
     }
 
-    const handleInputChange = (name: string, value: any) => {
+    const handleInputChange = (name: string, value: unknown) => {
         setFormData(prev => ({
             ...prev,
             [name]: value
         }))
     }
 
-    const renderField = (field: any) => {
-        const { name, label, type, required, options, placeholder } = field
+    const renderField = (field: FormField) => {
+        const { name, type, required, options, placeholder } = field
 
         switch (type) {
             case 'textarea':
                 return (
                     <textarea
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={(e) => handleInputChange(name, e.target.value)}
                         required={required}
                         placeholder={placeholder}
@@ -100,13 +100,13 @@ export default function EntryModal({
                 return (
                     <select
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={(e) => handleInputChange(name, e.target.value)}
                         required={required}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="">Bitte wählen...</option>
-                        {options?.map((option: any) => (
+                        {options?.map((option) => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
@@ -118,8 +118,8 @@ export default function EntryModal({
                     <input
                         type="number"
                         name={name}
-                        value={formData[name] || ''}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
+                        value={formData[name] !== undefined && formData[name] !== null ? Number(formData[name]) : ''}
+                        onChange={(e) => handleInputChange(name, e.target.value === '' ? '' : Number(e.target.value))}
                         required={required}
                         placeholder={placeholder}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -130,7 +130,7 @@ export default function EntryModal({
                     <input
                         type="date"
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={(e) => handleInputChange(name, e.target.value)}
                         required={required}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -140,7 +140,7 @@ export default function EntryModal({
                 return (
                     <AddressAutocomplete
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Adresse suchen...'}
@@ -150,7 +150,7 @@ export default function EntryModal({
                 return (
                     <ImmobilienAutocomplete
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Immobilie suchen...'}
@@ -160,7 +160,7 @@ export default function EntryModal({
                 return (
                     <KontaktAutocomplete
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
                         placeholder={placeholder || 'Kontakt suchen...'}
@@ -171,7 +171,7 @@ export default function EntryModal({
                     <input
                         type="text"
                         name={name}
-                        value={formData[name] || ''}
+                        value={String(formData[name] ?? '')}
                         onChange={(e) => handleInputChange(name, e.target.value)}
                         required={required}
                         placeholder={placeholder}

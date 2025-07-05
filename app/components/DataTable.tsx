@@ -1,7 +1,7 @@
 'use client'
 
 import { AgGridReact } from 'ag-grid-react'
-import { ColDef, GridOptions, ICellRendererParams } from 'ag-grid-community'
+import { ColDef, GridOptions, ICellRendererParams, GridApi } from 'ag-grid-community'
 import { useMemo, useState, useEffect } from 'react'
 import SearchBar from './SearchBar'
 
@@ -71,12 +71,12 @@ const ActionsRenderer = (props: ICellRendererParams) => {
 }
 
 interface DataTableProps {
-    data: any[]
+    data: Record<string, unknown>[]
     loading?: boolean
     error?: string | null
-    onRowClick?: (rowData: any) => void
+    onRowClick?: (rowData: Record<string, unknown>) => void
     onDelete?: (id: string) => Promise<void>
-    onEdit?: (rowData: any) => void
+    onEdit?: (rowData: Record<string, unknown>) => void
     className?: string
     columnDefs?: ColDef[]
 }
@@ -91,7 +91,7 @@ export default function DataTable({
     className = '',
     columnDefs: providedColumnDefs,
 }: DataTableProps) {
-    const [gridApi, setGridApi] = useState<any>(null)
+    const [gridApi, setGridApi] = useState<GridApi | null>(null)
     const [deletingRows, setDeletingRows] = useState<Set<string>>(new Set())
     const [editingRows, setEditingRows] = useState<Set<string>>(new Set())
     const [searchTerm, setSearchTerm] = useState('')
@@ -207,7 +207,7 @@ export default function DataTable({
         }
 
         return columns
-    }, [data, providedColumnDefs, onDelete])
+    }, [data, providedColumnDefs, onDelete, onEdit])
 
     // Wrapper for delete function that tracks deleting rows
     const handleDelete = useMemo(() => {
@@ -231,14 +231,14 @@ export default function DataTable({
     const handleEdit = useMemo(() => {
         if (!onEdit) return undefined
 
-        return (rowData: any) => {
-            setEditingRows(prev => new Set(prev).add(rowData.id))
+        return (rowData: Record<string, unknown>) => {
+            setEditingRows(prev => new Set(prev).add(rowData.id as string))
             try {
                 onEdit(rowData)
             } finally {
                 setEditingRows(prev => {
                     const newSet = new Set(prev)
-                    newSet.delete(rowData.id)
+                    newSet.delete(rowData.id as string)
                     return newSet
                 })
             }

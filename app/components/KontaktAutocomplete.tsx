@@ -10,15 +10,13 @@ interface Kontakt {
 
 interface KontaktAutocompleteProps {
     name: string
-    value: string | number
-    onChange: (name: string, value: any) => void
+    onChange: (name: string, value: string | number) => void
     required?: boolean
     placeholder?: string
 }
 
 export default function KontaktAutocomplete({
     name,
-    value,
     onChange,
     required = false,
     placeholder = 'Kontakt suchen...'
@@ -28,7 +26,6 @@ export default function KontaktAutocomplete({
     const [filteredKontakte, setFilteredKontakte] = useState<Kontakt[]>([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [selectedKontakt, setSelectedKontakt] = useState<Kontakt | null>(null)
     const wrapperRef = useRef<HTMLDivElement>(null)
 
     // Fetch kontakte data
@@ -70,17 +67,6 @@ export default function KontaktAutocomplete({
         setFilteredKontakte(filtered)
     }, [searchTerm, kontakte])
 
-    // Set selected kontakt when value changes (for edit mode)
-    useEffect(() => {
-        if (value && kontakte.length > 0) {
-            const kontakt = kontakte.find(k => k.id.toString() === value.toString())
-            if (kontakt) {
-                setSelectedKontakt(kontakt)
-                setSearchTerm(`${kontakt.name} - ${kontakt.adresse}`)
-            }
-        }
-    }, [value, kontakte])
-
     // Handle click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -103,12 +89,10 @@ export default function KontaktAutocomplete({
         // Clear the form value if user is typing
         if (!newValue.trim()) {
             onChange(name, '')
-            setSelectedKontakt(null)
         }
     }
 
     const handleSelectKontakt = (kontakt: Kontakt) => {
-        setSelectedKontakt(kontakt)
         setSearchTerm(`${kontakt.name} - ${kontakt.adresse}`)
         onChange(name, kontakt.id)
         setIsOpen(false)

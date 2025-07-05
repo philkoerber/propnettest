@@ -11,7 +11,7 @@ import { immobilienColumns } from '../../lib/columnDefinitions'
 export default function ImmobilienPage() {
     const { data, loading, error, refetch } = useApiData('immobilien')
     const { deleteEntry } = useDeleteEntry('immobilien')
-    const [editData, setEditData] = useState<any>(null)
+    const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
     const handleDelete = async (id: string) => {
@@ -23,7 +23,7 @@ export default function ImmobilienPage() {
         }
     }
 
-    const handleEdit = (rowData: any) => {
+    const handleEdit = (rowData: Record<string, unknown>) => {
         console.log(rowData)
         setEditData(rowData)
         setIsEditModalOpen(true)
@@ -59,7 +59,7 @@ export default function ImmobilienPage() {
             </div>
 
             <DataTable
-                data={data}
+                data={data as Record<string, unknown>[]}
                 loading={loading}
                 error={error}
                 columnDefs={immobilienColumns}

@@ -11,15 +11,13 @@ interface Immobilie {
 
 interface ImmobilienAutocompleteProps {
     name: string
-    value: string | number
-    onChange: (name: string, value: any) => void
+    onChange: (name: string, value: string | number) => void
     required?: boolean
     placeholder?: string
 }
 
 export default function ImmobilienAutocomplete({
     name,
-    value,
     onChange,
     required = false,
     placeholder = 'Immobilie suchen...'
@@ -29,7 +27,6 @@ export default function ImmobilienAutocomplete({
     const [filteredImmobilien, setFilteredImmobilien] = useState<Immobilie[]>([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [selectedImmobilie, setSelectedImmobilie] = useState<Immobilie | null>(null)
     const wrapperRef = useRef<HTMLDivElement>(null)
 
     // Fetch immobilien data
@@ -71,17 +68,6 @@ export default function ImmobilienAutocomplete({
         setFilteredImmobilien(filtered)
     }, [searchTerm, immobilien])
 
-    // Set selected immobilie when value changes (for edit mode)
-    useEffect(() => {
-        if (value && immobilien.length > 0) {
-            const immobilie = immobilien.find(i => i.id.toString() === value.toString())
-            if (immobilie) {
-                setSelectedImmobilie(immobilie)
-                setSearchTerm(`${immobilie.titel} - ${immobilie.adresse}`)
-            }
-        }
-    }, [value, immobilien])
-
     // Handle click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -104,12 +90,10 @@ export default function ImmobilienAutocomplete({
         // Clear the form value if user is typing
         if (!newValue.trim()) {
             onChange(name, '')
-            setSelectedImmobilie(null)
         }
     }
 
     const handleSelectImmobilie = (immobilie: Immobilie) => {
-        setSelectedImmobilie(immobilie)
         setSearchTerm(`${immobilie.titel} - ${immobilie.adresse}`)
         onChange(name, immobilie.id)
         setIsOpen(false)

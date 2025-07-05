@@ -45,7 +45,7 @@ export const AssociatedImmobilienRenderer = (props: ICellRendererParams) => {
         return '-'
     }
 
-    const items = props.value.map((item: any, index: number) =>
+    const items = props.value.map((item: Record<string, unknown>) =>
         `${item.art} @ ${item.immobilien_titel}`
     )
 
@@ -66,7 +66,7 @@ export const AssociatedKontakteRenderer = (props: ICellRendererParams) => {
         return '-'
     }
 
-    const kontakte = props.value.map((kontakt: any) => kontakt.name)
+    const kontakte = props.value.map((kontakt: Record<string, unknown>) => kontakt.name)
 
     if (kontakte.length === 1) {
         return React.createElement('div', { className: 'text-sm' }, kontakte[0])

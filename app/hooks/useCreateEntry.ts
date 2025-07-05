@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNotifications } from './useNotifications'
 
 interface UseCreateEntryReturn {
-    createEntry: (data: any) => Promise<any>
+    createEntry: (data: Record<string, unknown>) => Promise<unknown>
     loading: boolean
     error: string | null
     resetError: () => void
@@ -13,7 +13,7 @@ export function useCreateEntry(endpoint: string): UseCreateEntryReturn {
     const [error, setError] = useState<string | null>(null)
     const { showSuccess, showError } = useNotifications()
 
-    const createEntry = async (data: any) => {
+    const createEntry = async (data: Record<string, unknown>) => {
         try {
             setLoading(true)
             setError(null)

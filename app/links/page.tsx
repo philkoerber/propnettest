@@ -11,7 +11,7 @@ import { beziehungenColumns } from '../../lib/columnDefinitions'
 export default function LinksPage() {
     const { data, loading, error, refetch } = useApiData('beziehungen')
     const { deleteEntry } = useDeleteEntry('beziehungen')
-    const [editData, setEditData] = useState<any>(null)
+    const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
     const handleDelete = async (id: string) => {
@@ -23,7 +23,7 @@ export default function LinksPage() {
         }
     }
 
-    const handleEdit = (rowData: any) => {
+    const handleEdit = (rowData: Record<string, unknown>) => {
         setEditData(rowData)
         setIsEditModalOpen(true)
     }
@@ -59,7 +59,7 @@ export default function LinksPage() {
             </div>
 
             <DataTable
-                data={data}
+                data={data as Record<string, unknown>[]}
                 loading={loading}
                 error={error}
                 columnDefs={beziehungenColumns}

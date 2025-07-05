@@ -104,7 +104,7 @@ export async function PATCH(
         }
 
         // Only include fields that have actually changed
-        const changedFields: any = {}
+        const changedFields: Record<string, unknown> = {}
         Object.keys(body).forEach(key => {
             if (body[key] !== currentData[key]) {
                 changedFields[key] = body[key]

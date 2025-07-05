@@ -21,16 +21,7 @@ interface EntryModalProps {
     onEditSuccess?: () => void
 }
 
-interface Relationship {
-    id?: string
-    immobilien_id?: string | number
-    kontakt_id?: string | number
-    art: string
-    startdatum?: string
-    enddatum?: string
-    immobilien_titel?: string
-    kontakt_name?: string
-}
+
 
 // Helper function to filter virtual fields
 const filterVirtualFields = (entityData: Record<string, unknown>) => {
@@ -62,7 +53,7 @@ export default function EntryModal({
 
     // Use the new hook for fetching entity with relationships
     const entityId = editMode && editData ? (editData.id as string) : null
-    const { entity: fetchedEntity, loading: entityLoading, error: entityError, refetch: refetchEntity } = useEntity(endpoint, entityId)
+    const { entity: fetchedEntity, loading: entityLoading, error: entityError } = useEntity(endpoint, entityId)
 
     const loading = crudLoading || entityLoading
     const error = crudError || entityError
@@ -99,10 +90,11 @@ export default function EntryModal({
             // Always include relationships field, even if empty
             if (relationships && Array.isArray(relationships)) {
                 // Remove temporary IDs and unnecessary fields from relationships
-                const cleanedRelationships = relationships.map((rel: any) => {
+                const cleanedRelationships = relationships.map((rel: Record<string, unknown>) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id, immobilien_titel, kontakt_name, ...cleanRel } = rel
                     return cleanRel
-                }).filter((rel: any) => {
+                }).filter((rel: Record<string, unknown>) => {
                     // Only include relationships that have the required fields
                     if (endpoint === 'immobilien') {
                         return rel.kontakt_id && rel.art
@@ -201,7 +193,7 @@ export default function EntryModal({
                         value={String(formData[name] ?? '')}
                         onChange={handleInputChange}
                         required={required}
-                        placeholder={placeholder || 'Adresse suchen...'}
+                        placeholder={placeholder}
                     />
                 )
             case 'immobilie':
@@ -210,7 +202,7 @@ export default function EntryModal({
                         name={name}
                         onChange={handleInputChange}
                         required={required}
-                        placeholder={placeholder || 'Immobilie suchen...'}
+                        placeholder={placeholder}
                     />
                 )
             case 'kontakt':
@@ -219,7 +211,7 @@ export default function EntryModal({
                         name={name}
                         onChange={handleInputChange}
                         required={required}
-                        placeholder={placeholder || 'Kontakt suchen...'}
+                        placeholder={placeholder}
                     />
                 )
             case 'relationships':
@@ -227,7 +219,7 @@ export default function EntryModal({
                     <RelationshipManager
                         name={name}
                         onChange={handleInputChange}
-                        relationshipType={relationshipType || 'immobilien'}
+                        relationshipType={relationshipType as 'immobilien' | 'kontakte'}
                         currentRelationships={(formData[name] as Array<{ id?: string; immobilien_id?: string | number; kontakt_id?: string | number; art: string; startdatum?: string; enddatum?: string; immobilien_titel?: string; kontakt_name?: string }>) || []}
                     />
                 )

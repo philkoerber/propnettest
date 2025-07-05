@@ -46,8 +46,8 @@ export default function NetworkChart({
             }
         }
 
-        const nodes: any[] = []
-        const links: any[] = []
+        const nodes: Array<{ id: string; size: number; color: string }> = []
+        const links: Array<{ source: string; target: string; color: string; distance: number; art: string; startdatum: string; enddatum?: string }> = []
         const nodeIds = new Set<string>()
 
         // Process relationships to create nodes and links

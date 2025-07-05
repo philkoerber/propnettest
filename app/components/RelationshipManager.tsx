@@ -37,7 +37,7 @@ export default function RelationshipManager({
         enddatum: ''
     })
     const [pendingUpdates, setPendingUpdates] = useState<Relationship[] | null>(null)
-    const { fetchEntityDetails, loading: entityLoading, error: entityError } = useEntityDetails()
+    const { fetchEntityDetails } = useEntityDetails()
 
     // Only update local state from props when the prop changes
     useEffect(() => {

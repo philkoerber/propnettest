@@ -47,7 +47,7 @@ export default function LinksPage() {
             <NetworkLegend />
 
             <NetworkChart
-                data={data as any[]}
+                data={data as Array<{ id: string; immobilien_id: string; kontakt_id: string; art: string; startdatum: string; enddatum?: string; immobilien_summary?: string; kontakt_summary?: string }>}
                 loading={loading}
                 error={error}
             />

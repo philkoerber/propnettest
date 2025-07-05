@@ -4,26 +4,21 @@ import { validateUUID } from '../../../../lib/uuidValidator'
 import {
     isValidTable,
     getTableErrorMessages,
-    COMMON_ERROR_MESSAGES
+    COMMON_ERROR_MESSAGES,
+    AllowedTable
 } from '../../../../lib/errorMessages'
 
 // Helper function to handle database errors
-const handleDatabaseError = (error: any, table: string, operation: 'fetch' | 'create' | 'update' | 'delete') => {
+const handleDatabaseError = (error: unknown, table: string, operation: 'fetch' | 'create' | 'update' | 'delete') => {
     console.error(`Error ${operation} ${table}:`, error)
-    const errorMessages = getTableErrorMessages(table as any)
+    const errorMessages = getTableErrorMessages(table as AllowedTable)
     return NextResponse.json(
         { error: errorMessages[operation] || 'Unknown error' },
         { status: 500 }
     )
 }
 
-// Helper function to extract ID from object or return as is
-const extractId = (value: any) => {
-    if (value && typeof value === 'object' && 'id' in value) {
-        return value.id
-    }
-    return value
-}
+
 
 // Helper function to filter virtual fields from entity data
 const filterVirtualFields = (entityData: Record<string, unknown>) => {
@@ -40,13 +35,13 @@ const filterVirtualFields = (entityData: Record<string, unknown>) => {
 }
 
 // Helper function to sanitize date fields
-const sanitizeDateField = (value: any) => {
+const sanitizeDateField = (value: unknown) => {
     return value === '' || value === null || value === undefined ? null : value
 }
 
 // Helper function to create relationship data for updates
-const createRelationshipDataForUpdate = (relationships: any[], table: string, entityId: string) => {
-    return relationships.map((rel: any) => {
+const createRelationshipDataForUpdate = (relationships: Record<string, unknown>[], table: string, entityId: string) => {
+    return relationships.map((rel: Record<string, unknown>) => {
         if (table === 'immobilien') {
             return {
                 immobilien_id: entityId,
@@ -109,15 +104,15 @@ const fetchEntityWithRelationships = async (table: string, id: string) => {
         }
 
         // Format the relationships data
-        const formattedRelationships = (relationshipsData || []).map((rel: any) => ({
+        const formattedRelationships = (relationshipsData || []).map((rel: Record<string, unknown>) => ({
             id: rel.id,
             immobilien_id: rel.immobilien_id,
             kontakt_id: rel.kontakt_id,
             art: rel.art,
-            startdatum: formatDateForInput(rel.startdatum),
-            enddatum: formatDateForInput(rel.enddatum),
-            immobilien_titel: rel.immobilien?.titel,
-            kontakt_name: rel.kontakt?.name
+            startdatum: formatDateForInput(rel.startdatum as string | null),
+            enddatum: formatDateForInput(rel.enddatum as string | null),
+            immobilien_titel: (rel.immobilien as Record<string, unknown>)?.titel,
+            kontakt_name: (rel.kontakt as Record<string, unknown>)?.name
         }))
 
         return {
@@ -247,7 +242,7 @@ export async function PATCH(
         }
 
         if (!currentData) {
-            const errorMessages = getTableErrorMessages(table as any)
+            const errorMessages = getTableErrorMessages(table as AllowedTable)
             return NextResponse.json(
                 { error: errorMessages.notFound },
                 { status: 404 }

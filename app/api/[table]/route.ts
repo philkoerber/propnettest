@@ -3,13 +3,14 @@ import { supabase } from '../../../lib/supabase'
 import {
     isValidTable,
     getTableErrorMessages,
-    COMMON_ERROR_MESSAGES
+    COMMON_ERROR_MESSAGES,
+    AllowedTable
 } from '../../../lib/errorMessages'
 
 // Helper function to handle database errors
-const handleDatabaseError = (error: any, table: string, operation: 'fetch' | 'create' | 'update' | 'delete') => {
+const handleDatabaseError = (error: unknown, table: string, operation: 'fetch' | 'create' | 'update' | 'delete') => {
     console.error(`Error ${operation} ${table}:`, error)
-    const errorMessages = getTableErrorMessages(table as any)
+    const errorMessages = getTableErrorMessages(table as AllowedTable)
     return NextResponse.json(
         { error: errorMessages[operation] || 'Unknown error' },
         { status: 500 }
@@ -147,8 +148,8 @@ const filterVirtualFields = (entityData: Record<string, unknown>) => {
 }
 
 // Helper function to create relationship data
-const createRelationshipData = (relationships: any[], table: string, entityId: string) => {
-    return relationships.map((rel: any) => {
+const createRelationshipData = (relationships: Record<string, unknown>[], table: string, entityId: string) => {
+    return relationships.map((rel: Record<string, unknown>) => {
         if (table === 'immobilien') {
             return {
                 immobilien_id: entityId,

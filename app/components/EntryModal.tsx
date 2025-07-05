@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useCrud } from '../hooks/useCrud'
 import { useEntity } from '../hooks/useData'
-import { useNotifications } from '../hooks/useNotifications'
 import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefinitions'
-import { shouldShowField } from '../../lib/relationshipValidation'
+import { shouldShowField, Relationship } from '../../lib/relationshipValidation'
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
@@ -23,8 +22,6 @@ interface EntryModalProps {
     onEditSuccess?: () => void
 }
 
-
-
 // Helper function to filter virtual fields
 const filterVirtualFields = (entityData: Record<string, unknown>) => {
     const virtualFields = ['mieter', 'eigentümer', 'dienstleister', 'associated_immobilien']
@@ -39,68 +36,151 @@ const filterVirtualFields = (entityData: Record<string, unknown>) => {
     return filteredEntityData
 }
 
-export default function EntryModal({
-    endpoint,
-    modalTitle,
-    columnDefs,
-    editMode = false,
-    editData,
-    isOpen,
-    onClose,
-    onSuccess,
-    onEditSuccess
-}: EntryModalProps) {
-    const [formData, setFormData] = useState<Record<string, unknown>>({})
-    const { create, update, loading: crudLoading, error: crudError, resetError: resetCrudError } = useCrud(endpoint)
-    const { showError } = useNotifications()
+function renderField(field: FormField, formData: Record<string, unknown>, handleInputChange: (name: string, value: unknown) => void) {
+    const { name, type, required, options, placeholder, relationshipType } = field
 
-    // Use the new hook for fetching entity with relationships
-    const entityId = editMode && editData ? (editData.id as string) : null
-    const { entity: fetchedEntity, loading: entityLoading, error: entityError } = useEntity(endpoint, entityId)
-
-    const loading = crudLoading || entityLoading
-    const error = crudError || entityError
-    const resetError = () => {
-        resetCrudError()
+    switch (type) {
+        case 'textarea':
+            return (
+                <textarea
+                    name={name}
+                    value={String(formData[name] ?? '')}
+                    onChange={(e) => handleInputChange(name, e.target.value)}
+                    required={required}
+                    placeholder={placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                />
+            )
+        case 'select':
+            return (
+                <select
+                    name={name}
+                    value={String(formData[name] ?? '')}
+                    onChange={(e) => handleInputChange(name, e.target.value)}
+                    required={required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                    <option value="">Bitte wählen...</option>
+                    {options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            )
+        case 'number':
+            return (
+                <input
+                    type="number"
+                    name={name}
+                    value={formData[name] !== undefined && formData[name] !== null ? Number(formData[name]) : ''}
+                    onChange={(e) => handleInputChange(name, e.target.value === '' ? '' : Number(e.target.value))}
+                    required={required}
+                    placeholder={placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            )
+        case 'date':
+            return (
+                <input
+                    type="date"
+                    name={name}
+                    value={String(formData[name] ?? '')}
+                    onChange={(e) => handleInputChange(name, e.target.value)}
+                    required={required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            )
+        case 'address':
+            return (
+                <AddressAutocomplete
+                    name={name}
+                    value={String(formData[name] ?? '')}
+                    onChange={handleInputChange}
+                    required={required}
+                    placeholder={placeholder}
+                />
+            )
+        case 'immobilie':
+            return (
+                <ImmobilienAutocomplete
+                    name={name}
+                    onChange={handleInputChange}
+                    required={required}
+                    placeholder={placeholder}
+                />
+            )
+        case 'kontakt':
+            return (
+                <KontaktAutocomplete
+                    name={name}
+                    onChange={handleInputChange}
+                    required={required}
+                    placeholder={placeholder}
+                />
+            )
+        case 'relationships':
+            return (
+                <RelationshipManager
+                    name={name}
+                    onChange={handleInputChange}
+                    relationshipType={relationshipType as 'immobilien' | 'kontakte'}
+                    currentRelationships={(formData[name] as Relationship[]) || []}
+                />
+            )
+        default:
+            return (
+                <input
+                    type="text"
+                    name={name}
+                    value={String(formData[name] ?? '')}
+                    onChange={(e) => handleInputChange(name, e.target.value)}
+                    required={required}
+                    placeholder={placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            )
     }
+}
 
-    // Extract form fields from column definitions
-    const fields = getFormFields(columnDefs)
-
-    // Initialize form data when edit mode is enabled
-    useEffect(() => {
-        if (editMode && fetchedEntity) {
-            // Use the fetched entity data which already includes relationships
-            setFormData(fetchedEntity as Record<string, unknown>)
-        } else if (!editMode) {
-            setFormData({})
-        }
-    }, [editMode, fetchedEntity])
-
-
-
-    const handleSubmit = async (e: React.FormEvent) => {
+function handleSubmitFactory({
+    formData,
+    setFormData,
+    endpoint,
+    editMode,
+    editData,
+    update,
+    create,
+    onEditSuccess,
+    onSuccess,
+    onClose,
+    resetError
+}: {
+    formData: Record<string, unknown>
+    setFormData: React.Dispatch<React.SetStateAction<Record<string, unknown>>>
+    endpoint: string
+    editMode: boolean
+    editData: Record<string, unknown> | null | undefined
+    update: (id: string, data: Record<string, unknown>) => Promise<unknown>
+    create: (data: Record<string, unknown>) => Promise<unknown>
+    onEditSuccess?: () => void
+    onSuccess?: () => void
+    onClose: () => void
+    resetError: () => void
+}) {
+    return async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
-
         try {
-            // Extract relationships from form data and structure the request
             const { relationships, ...entityData } = formData
             const filteredEntityData = filterVirtualFields(entityData)
-
-            // Structure the request data
-            const requestData: Record<string, unknown> = {
-                ...filteredEntityData
-            }
-
-            // Always include relationships field, even if empty
+            const requestData: Record<string, unknown> = { ...filteredEntityData }
             if (relationships && Array.isArray(relationships)) {
-                // Remove temporary IDs and unnecessary fields from relationships
                 const cleanedRelationships = relationships.map((rel: Record<string, unknown>) => {
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { id, immobilien_titel, kontakt_name, ...cleanRel } = rel
                     return cleanRel
                 }).filter((rel: Record<string, unknown>) => {
-                    // Only include relationships that have the required fields
                     if (endpoint === 'immobilien') {
                         return rel.kontakt_id && rel.art
                     } else if (endpoint === 'kontakte') {
@@ -108,13 +188,8 @@ export default function EntryModal({
                     }
                     return true
                 })
-
-
-
-                // Always include relationships field, even if empty array
                 requestData.relationships = cleanedRelationships
             }
-
             if (editMode && editData) {
                 await update(editData.id as string, requestData)
                 onEditSuccess?.()
@@ -129,124 +204,60 @@ export default function EntryModal({
             // Error is handled by the hook
         }
     }
+}
 
-    const handleInputChange = (name: string, value: unknown) => {
+function handleInputChangeFactory(setFormData: React.Dispatch<React.SetStateAction<Record<string, unknown>>>) {
+    return (name: string, value: unknown) => {
         setFormData(prev => ({
             ...prev,
             [name]: value
         }))
     }
+}
 
-    const renderField = (field: FormField) => {
-        const { name, type, required, options, placeholder, relationshipType } = field
-
-        switch (type) {
-            case 'textarea':
-                return (
-                    <textarea
-                        name={name}
-                        value={String(formData[name] ?? '')}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
-                        required={required}
-                        placeholder={placeholder}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={3}
-                    />
-                )
-            case 'select':
-                return (
-                    <select
-                        name={name}
-                        value={String(formData[name] ?? '')}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
-                        required={required}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="">Bitte wählen...</option>
-                        {options?.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-                )
-            case 'number':
-                return (
-                    <input
-                        type="number"
-                        name={name}
-                        value={formData[name] !== undefined && formData[name] !== null ? Number(formData[name]) : ''}
-                        onChange={(e) => handleInputChange(name, e.target.value === '' ? '' : Number(e.target.value))}
-                        required={required}
-                        placeholder={placeholder}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                )
-            case 'date':
-                return (
-                    <input
-                        type="date"
-                        name={name}
-                        value={String(formData[name] ?? '')}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
-                        required={required}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                )
-            case 'address':
-                return (
-                    <AddressAutocomplete
-                        name={name}
-                        value={String(formData[name] ?? '')}
-                        onChange={handleInputChange}
-                        required={required}
-                        placeholder={placeholder}
-                    />
-                )
-            case 'immobilie':
-                return (
-                    <ImmobilienAutocomplete
-                        name={name}
-                        onChange={handleInputChange}
-                        required={required}
-                        placeholder={placeholder}
-                    />
-                )
-            case 'kontakt':
-                return (
-                    <KontaktAutocomplete
-                        name={name}
-                        onChange={handleInputChange}
-                        required={required}
-                        placeholder={placeholder}
-                    />
-                )
-            case 'relationships':
-                return (
-                    <RelationshipManager
-                        name={name}
-                        onChange={handleInputChange}
-                        relationshipType={relationshipType as 'immobilien' | 'kontakte'}
-                        currentRelationships={(formData[name] as any[]) || []}
-                    />
-                )
-            default:
-                return (
-                    <input
-                        type="text"
-                        name={name}
-                        value={String(formData[name] ?? '')}
-                        onChange={(e) => handleInputChange(name, e.target.value)}
-                        required={required}
-                        placeholder={placeholder}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                )
-        }
+function resetErrorFactory(resetCrudError: () => void) {
+    return () => {
+        resetCrudError()
     }
+}
 
-    if (!isOpen) return null
+function renderError(error: unknown): string {
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    if (error instanceof Error) return error.message;
+    try {
+        return JSON.stringify(error);
+    } catch {
+        return 'Unbekannter Fehler';
+    }
+}
 
+function ModalContent({
+    modalTitle,
+    error,
+    fields,
+    formData,
+    handleInputChange,
+    handleSubmit,
+    loading,
+    editMode,
+    onClose,
+    setFormData,
+    resetError
+}: {
+    modalTitle: string
+    error: unknown
+    fields: FormField[]
+    formData: Record<string, unknown>
+    handleInputChange: (name: string, value: unknown) => void
+    handleSubmit: (e: React.FormEvent) => void
+    loading: boolean
+    editMode: boolean
+    onClose: () => void
+    setFormData: React.Dispatch<React.SetStateAction<Record<string, unknown>>>
+    resetError: () => void
+}) {
+    const errorString = renderError(error);
     return (
         <>
             {/* Backdrop */}
@@ -280,26 +291,24 @@ export default function EntryModal({
                             </button>
                         </div>
 
-                        {error && (
+                        {errorString && (
                             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                                {error}
+                                {errorString}
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {fields.map((field) => {
-                                // Check if field should be shown based on conditional logic
                                 if (!shouldShowField(field, formData)) {
-                                    return null // Don't render this field
+                                    return null
                                 }
-
                                 return (
                                     <div key={field.name}>
                                         <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
                                             {field.label}
                                             {field.required && <span className="text-red-500 ml-1">*</span>}
                                         </label>
-                                        {renderField(field)}
+                                        {renderField(field, formData, handleInputChange)}
                                     </div>
                                 )
                             })}
@@ -332,5 +341,63 @@ export default function EntryModal({
                 </div>
             </div>
         </>
+    )
+}
+
+export default function EntryModal({
+    endpoint,
+    modalTitle,
+    columnDefs,
+    editMode = false,
+    editData,
+    isOpen,
+    onClose,
+    onSuccess,
+    onEditSuccess
+}: EntryModalProps) {
+    const [formData, setFormData] = useState<Record<string, unknown>>({})
+    const { create, update, loading: crudLoading, error: crudError, resetError: resetCrudError } = useCrud(endpoint)
+    const entityId = editMode && editData ? (editData.id as string) : null
+    const { entity: fetchedEntity, loading: entityLoading, error: entityError } = useEntity(endpoint, entityId)
+    const loading = crudLoading || entityLoading
+    const error = crudError || entityError
+    const resetError = resetErrorFactory(resetCrudError)
+    const fields = getFormFields(columnDefs)
+    useEffect(() => {
+        if (editMode && fetchedEntity) {
+            setFormData(fetchedEntity as Record<string, unknown>)
+        } else if (!editMode) {
+            setFormData({})
+        }
+    }, [editMode, fetchedEntity])
+    const handleInputChange = handleInputChangeFactory(setFormData)
+    const handleSubmit = handleSubmitFactory({
+        formData,
+        setFormData,
+        endpoint,
+        editMode,
+        editData,
+        update: update as (id: string, data: Record<string, unknown>) => Promise<unknown>,
+        create: create as (data: Record<string, unknown>) => Promise<unknown>,
+        onEditSuccess,
+        onSuccess,
+        onClose,
+        resetError
+    })
+    if (!isOpen) return null
+    return (
+        <ModalContent
+            modalTitle={modalTitle}
+            error={error}
+            fields={fields}
+            formData={formData}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+            loading={loading}
+            editMode={editMode}
+            onClose={onClose}
+            setFormData={setFormData}
+            resetError={resetError}
+        />
     )
 } 

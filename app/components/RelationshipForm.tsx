@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Relationship, RelationshipValidator } from '../../lib/relationshipValidation'
-import { RELATIONSHIP_TYPES } from '../../lib/columnDefinitions'
+import { RELATIONSHIP_TYPES, RelationshipType } from '../../lib/columnDefinitions'
 import { useNotifications } from '../hooks/useNotifications'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
 import KontaktAutocomplete from './KontaktAutocomplete'
@@ -21,7 +21,7 @@ export default function RelationshipForm({
     existingRelationships
 }: RelationshipFormProps) {
     const [relationship, setRelationship] = useState<Relationship>({
-        art: '' as any,
+        art: '' as RelationshipType,
         startdatum: '',
         enddatum: '',
         dienstleistungen: ''
@@ -39,6 +39,7 @@ export default function RelationshipForm({
         // Clear field-specific error when user starts typing
         if (errors[field]) {
             setErrors(prev => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { [field]: _, ...rest } = prev
                 return rest
             })
@@ -67,7 +68,7 @@ export default function RelationshipForm({
     }
 
     const handleCancel = () => {
-        setRelationship({ art: '' as any, startdatum: '', enddatum: '', dienstleistungen: '' })
+        setRelationship({ art: '' as RelationshipType, startdatum: '', enddatum: '', dienstleistungen: '' })
         setErrors({})
         onCancel()
     }

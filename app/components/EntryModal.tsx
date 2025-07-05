@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useCreateEntry } from '../hooks/useCreateEntry'
-import { useUpdateEntry } from '../hooks/useUpdateEntry'
-import { useFetchEntityWithRelationships } from '../hooks/useFetchEntityWithRelationships'
+import { useCrud } from '../hooks/useCrud'
+import { useEntity } from '../hooks/useData'
 import { ExtendedColDef, getFormFields, FormField } from '../../lib/columnDefinitions'
 import AddressAutocomplete from './AddressAutocomplete'
 import ImmobilienAutocomplete from './ImmobilienAutocomplete'
@@ -59,18 +58,16 @@ export default function EntryModal({
     onEditSuccess
 }: EntryModalProps) {
     const [formData, setFormData] = useState<Record<string, unknown>>({})
-    const { createEntry, loading: createLoading, error: createError, resetError: resetCreateError } = useCreateEntry(endpoint)
-    const { updateEntry, loading: updateLoading, error: updateError, resetError: resetUpdateError } = useUpdateEntry(endpoint)
+    const { create, update, loading: crudLoading, error: crudError, resetError: resetCrudError } = useCrud(endpoint)
 
     // Use the new hook for fetching entity with relationships
     const entityId = editMode && editData ? (editData.id as string) : null
-    const { entity: fetchedEntity, loading: entityLoading, error: entityError, refetch: refetchEntity } = useFetchEntityWithRelationships(endpoint, entityId)
+    const { entity: fetchedEntity, loading: entityLoading, error: entityError, refetch: refetchEntity } = useEntity(endpoint, entityId)
 
-    const loading = createLoading || updateLoading || entityLoading
-    const error = createError || updateError || entityError
+    const loading = crudLoading || entityLoading
+    const error = crudError || entityError
     const resetError = () => {
-        resetCreateError()
-        resetUpdateError()
+        resetCrudError()
     }
 
     // Extract form fields from column definitions
@@ -80,7 +77,7 @@ export default function EntryModal({
     useEffect(() => {
         if (editMode && fetchedEntity) {
             // Use the fetched entity data which already includes relationships
-            setFormData(fetchedEntity)
+            setFormData(fetchedEntity as Record<string, unknown>)
         } else if (!editMode) {
             setFormData({})
         }
@@ -121,10 +118,10 @@ export default function EntryModal({
             }
 
             if (editMode && editData) {
-                await updateEntry(editData.id as string, requestData)
+                await update(editData.id as string, requestData)
                 onEditSuccess?.()
             } else {
-                await createEntry(requestData)
+                await create(requestData)
                 onSuccess?.()
             }
             onClose()

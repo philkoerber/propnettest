@@ -1,16 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useApiData } from '../hooks/useApiData'
-import { useDeleteEntry } from '../hooks/useDeleteEntry'
+import { useData } from '../hooks/useData'
+import { useCrud } from '../hooks/useCrud'
 import DataTable from '../components/DataTable'
 import EntryButton from '../components/EntryButton'
 import EntryModal from '../components/EntryModal'
 import { immobilienColumns } from '../../lib/columnDefinitions'
 
 export default function ImmobilienPage() {
-    const { data, loading, error, refetch } = useApiData('immobilien')
-    const { deleteEntry } = useDeleteEntry('immobilien')
+    const { data, loading, error, refetch } = useData('immobilien')
+    const { remove: deleteEntry } = useCrud('immobilien')
     const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 

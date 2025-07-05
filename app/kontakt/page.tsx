@@ -1,16 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useApiData } from '../hooks/useApiData'
-import { useDeleteEntry } from '../hooks/useDeleteEntry'
+import { useData } from '../hooks/useData'
+import { useCrud } from '../hooks/useCrud'
 import DataTable from '../components/DataTable'
 import EntryButton from '../components/EntryButton'
 import EntryModal from '../components/EntryModal'
 import { kontakteColumns } from '../../lib/columnDefinitions'
 
 export default function KontaktPage() {
-    const { data, loading, error, refetch } = useApiData('kontakte')
-    const { deleteEntry } = useDeleteEntry('kontakte')
+    const { data, loading, error, refetch } = useData('kontakte')
+    const { remove: deleteEntry } = useCrud('kontakte')
     const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 

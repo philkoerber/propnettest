@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useApiData } from '../hooks/useApiData'
-import { useDeleteEntry } from '../hooks/useDeleteEntry'
+import { useData } from '../hooks/useData'
 import NetworkChart from '../components/NetworkChart'
 import NetworkLegend from '../components/NetworkLegend'
 import EntryButton from '../components/EntryButton'
@@ -10,7 +9,7 @@ import EntryModal from '../components/EntryModal'
 import { beziehungenColumns } from '../../lib/columnDefinitions'
 
 export default function LinksPage() {
-    const { data, loading, error, refetch } = useApiData('beziehungen')
+    const { data, loading, error, refetch } = useData('beziehungen')
     const [editData, setEditData] = useState<Record<string, unknown> | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 

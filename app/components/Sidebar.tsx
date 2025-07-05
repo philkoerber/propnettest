@@ -1,6 +1,6 @@
 export default function Sidebar() {
     return (
-        <aside className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
+        <aside className="w-48 bg-white shadow-sm border-r border-gray-200 min-h-screen">
             <nav className="mt-5 px-2">
                 <div className="space-y-1">
                     <a
@@ -28,7 +28,7 @@ export default function Sidebar() {
                         <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
-                        Links (Beziehungen)
+                        Links
                     </a>
                 </div>
             </nav>

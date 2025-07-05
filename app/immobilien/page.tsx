@@ -1,17 +1,10 @@
 'use client'
 
+import { useApiData } from '../hooks/useApiData'
 import DataTable from '../components/DataTable'
-import { useDataFetching } from '../hooks/useDataFetching'
 
 export default function ImmobilienPage() {
-    const { data, loading, error, refetch } = useDataFetching({
-        endpoint: '/api/immobilien'
-    })
-
-    const handleRowClick = (rowData: any) => {
-        console.log('Clicked row:', rowData)
-        // Here you can add navigation to detail page or open modal
-    }
+    const { data, loading, error, refetch } = useApiData('immobilien')
 
     return (
         <div className="space-y-6">
@@ -26,11 +19,12 @@ export default function ImmobilienPage() {
                 data={data}
                 loading={loading}
                 error={error}
-                title="Immobilien Übersicht"
-                description="Alle verfügbaren Immobilien in der Datenbank"
-                onRowClick={handleRowClick}
-                height="700px"
+                title="Immobilien"
+                onRowClick={(rowData) => {
+                    console.log('Selected property:', rowData)
+                    // Handle row click - could open edit modal, navigate to detail page, etc.
+                }}
             />
         </div>
-    )
+    );
 } 
